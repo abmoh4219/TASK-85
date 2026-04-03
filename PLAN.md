@@ -133,18 +133,18 @@
 > Goal: Test dictionary, sample lifecycle, result entry, report versioning
 > Pause after this phase and wait for "proceed"
 
-- [ ] 5.1 Create LabModule with LabService, LabController
-- [ ] 5.2 Implement test item dictionary CRUD: GET/POST/PATCH /lab/tests (with reference ranges per test)
-- [ ] 5.3 Implement sample intake: POST /lab/samples (employee submits, status=submitted)
-- [ ] 5.4 Implement sample status transitions: submitted → in-progress → reported → archived
-- [ ] 5.5 Implement result entry: POST /lab/samples/:id/results (with automatic abnormal flag if value outside reference range)
-- [ ] 5.6 Implement abnormal flag logic: compare entered value against ReferenceRange min/max, set isAbnormal automatically
-- [ ] 5.7 Implement report creation: POST /lab/samples/:id/report (generates LabReport from results)
-- [ ] 5.8 Implement report versioning: every edit to a report creates a new LabReportVersion (immutable audit trail)
-- [ ] 5.9 Implement report edit history: GET /lab/reports/:id/history (returns all versions with diff)
-- [ ] 5.10 Implement report archive: PATCH /lab/reports/:id/archive
-- [ ] 5.11 Write unit tests: abnormal flag logic for numeric and range-based reference values
-- [ ] 5.12 Write e2e tests (real DB): full sample lifecycle from intake to archived report with version history
+- [x] 5.1 Create LabModule with LabService, LabController
+- [x] 5.2 Implement test item dictionary CRUD: GET/POST/PATCH /lab/tests (with reference ranges per test)
+- [x] 5.3 Implement sample intake: POST /lab/samples (employee submits, status=submitted)
+- [x] 5.4 Implement sample status transitions: submitted → in-progress → reported → archived
+- [x] 5.5 Implement result entry: POST /lab/samples/:id/results (with automatic abnormal flag if value outside reference range)
+- [x] 5.6 Implement abnormal flag logic: compare entered value against ReferenceRange min/max, set isAbnormal automatically
+- [x] 5.7 Implement report creation: POST /lab/samples/:id/report (generates LabReport from results)
+- [x] 5.8 Implement report versioning: every edit to a report creates a new LabReportVersion (immutable audit trail)
+- [x] 5.9 Implement report edit history: GET /lab/reports/:id/history (returns all versions with diff)
+- [x] 5.10 Implement report archive: PATCH /lab/reports/:id/archive
+- [x] 5.11 Write unit tests: abnormal flag logic for numeric and range-based reference values
+- [x] 5.12 Write e2e tests (real DB): full sample lifecycle from intake to archived report with version history
 
 **Phase 5 checkpoint: sample moves through all statuses, abnormal flags auto-set, report versions tracked.**
 
