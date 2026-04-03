@@ -154,15 +154,15 @@
 > Goal: Projects, tasks, milestones, deliverables, acceptance scoring
 > Pause after this phase and wait for "proceed"
 
-- [ ] 6.1 Create ProjectsModule with ProjectService, ProjectController
-- [ ] 6.2 Implement project CRUD: POST/GET/PATCH /projects (with status: initiation/change/inspection/final-acceptance/archive)
-- [ ] 6.3 Implement project status transitions with validation (e.g., cannot skip to archive from initiation)
-- [ ] 6.4 Implement task CRUD: POST/GET/PATCH /projects/:id/tasks (employee creates, supervisor approves)
-- [ ] 6.5 Implement milestone tracking: POST/GET/PATCH /projects/:id/milestones (with progress %)
-- [ ] 6.6 Implement deliverable submission: POST /projects/:projectId/tasks/:taskId/deliverables
-- [ ] 6.7 Implement acceptance scoring: POST /projects/:id/acceptance-score (supervisor scores deliverables)
-- [ ] 6.8 Write audit log entry on every project/task state change
-- [ ] 6.9 Write e2e tests (real DB): full project lifecycle from initiation to archive with tasks and milestones
+- [x] 6.1 Create ProjectsModule with ProjectService, ProjectController
+- [x] 6.2 Implement project CRUD: POST/GET/PATCH /projects (with status: initiation/change/inspection/final-acceptance/archive)
+- [x] 6.3 Implement project status transitions with validation (e.g., cannot skip to archive from initiation)
+- [x] 6.4 Implement task CRUD: POST/GET/PATCH /projects/:id/tasks (employee creates, supervisor approves)
+- [x] 6.5 Implement milestone tracking: POST/GET/PATCH /projects/:id/milestones (with progress %)
+- [x] 6.6 Implement deliverable submission: POST /projects/:projectId/tasks/:taskId/deliverables
+- [x] 6.7 Implement acceptance scoring: POST /projects/:id/acceptance-score (supervisor scores deliverables)
+- [x] 6.8 Write audit log entry on every project/task state change
+- [x] 6.9 Write e2e tests (real DB): full project lifecycle from initiation to archive with tasks and milestones
 
 **Phase 6 checkpoint: project moves through all 5 statuses with tasks, milestones, and acceptance scoring.**
 

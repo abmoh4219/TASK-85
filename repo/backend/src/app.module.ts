@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { LabModule } from './modules/lab/lab.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { winstonConfig } from './config/winston.config';
 import { appConfig } from './config/app.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -35,6 +36,7 @@ import { NonceMiddleware } from './common/middleware/nonce.middleware';
     ProcurementModule,
     InventoryModule,
     LabModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [
