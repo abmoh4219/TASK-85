@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: meridianmed-postgres-test
+    environment:
+      POSTGRES_DB: meridianmed_test
+      POSTGRES_USER: meridian
+      POSTGRES_PASSWORD: meridian_secret
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meridian -d meridianmed_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.test
+    container_name: meridianmed-test-runner
+    environment:
+      NODE_ENV: test
+      PORT: 4000
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_NAME: meridianmed_test
+      DB_USER: meridian
+      DB_PASSWORD: meridian_secret
+      JWT_SECRET: test_jwt_secret_key
+      JWT_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 8h
+      ENCRYPTION_KEY: test_aes256_key_32chars_padding!!
+      THROTTLE_TTL: 60
+      THROTTLE_LIMIT: 100
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      postgres-test:
+        condition: service_healthy
