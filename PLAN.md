@@ -222,20 +222,20 @@
 > Goal: Guided procurement flow, inventory management, lab operations UI
 > Pause after this phase and wait for "proceed"
 
-- [ ] 9.1 Procurement: Purchase Request form (guided, multi-step: item selection → quantities → justification → submit)
-- [ ] 9.2 Procurement: RFQ management page (list RFQs, add vendor quotes)
-- [ ] 9.3 Procurement: Side-by-side quote comparison table (highlight lowest price, recommended vendor)
-- [ ] 9.4 Procurement: PO issuance form (from approved RFQ, shows locked pricing with 30-day countdown)
-- [ ] 9.5 Procurement: Receiving & inspection page (line-by-line receipt entry, pass/fail inspection per line)
-- [ ] 9.6 Procurement: Put-away and reconciliation pages
-- [ ] 9.7 Inventory: Item catalog page (table with stock levels, alert badges inline)
-- [ ] 9.8 Inventory: Item detail page (stock history chart, all active alerts, replenishment recommendations)
-- [ ] 9.9 Inventory: Replenishment recommendation card (accept button → auto-drafts PR, tracks impression+click)
-- [ ] 9.10 Lab: Sample intake form (employee submits sample details)
-- [ ] 9.11 Lab: Sample management board (kanban or table view by status)
-- [ ] 9.12 Lab: Result entry form (field per test with reference range shown, abnormal flag highlights automatically)
-- [ ] 9.13 Lab: Report viewer (with version history sidebar showing all edits, diff view)
-- [ ] 9.14 Verify: all pages fetch from real backend, no mocked data, loading/empty/error states on every page
+- [x] 9.1 Procurement: Purchase Request form (guided, multi-step: item selection → quantities → justification → submit)
+- [x] 9.2 Procurement: RFQ management page (list RFQs, add vendor quotes)
+- [x] 9.3 Procurement: Side-by-side quote comparison table (highlight lowest price, recommended vendor)
+- [x] 9.4 Procurement: PO issuance form (from approved RFQ, shows locked pricing with 30-day countdown)
+- [x] 9.5 Procurement: Receiving & inspection page (line-by-line receipt entry, pass/fail inspection per line)
+- [x] 9.6 Procurement: Put-away and reconciliation pages
+- [x] 9.7 Inventory: Item catalog page (table with stock levels, alert badges inline)
+- [x] 9.8 Inventory: Item detail page (stock history chart, all active alerts, replenishment recommendations)
+- [x] 9.9 Inventory: Replenishment recommendation card (accept button → auto-drafts PR, tracks impression+click)
+- [x] 9.10 Lab: Sample intake form (employee submits sample details)
+- [x] 9.11 Lab: Sample management board (kanban or table view by status)
+- [x] 9.12 Lab: Result entry form (field per test with reference range shown, abnormal flag highlights automatically)
+- [x] 9.13 Lab: Report viewer (with version history sidebar showing all edits, diff view)
+- [x] 9.14 Verify: all pages fetch from real backend, no mocked data, loading/empty/error states on every page
 
 **Phase 9 checkpoint: full procurement flow completable via UI end-to-end, lab sample through archived report.**
 

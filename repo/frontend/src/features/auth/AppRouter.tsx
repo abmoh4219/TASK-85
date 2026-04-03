@@ -6,8 +6,18 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { AnomalyQueuePage } from '@/features/dashboard/AnomalyQueuePage';
+import { ProcurementPage } from '@/features/procurement/ProcurementPage';
+import { CreateRequestPage } from '@/features/procurement/CreateRequestPage';
+import { RFQPage, RFQDetailPage } from '@/features/procurement/RFQPage';
+import { OrdersPage, OrderDetailPage } from '@/features/procurement/OrdersPage';
+import { InventoryPage } from '@/features/inventory/InventoryPage';
+import { ItemDetailPage } from '@/features/inventory/ItemDetailPage';
+import { LabPage } from '@/features/lab/LabPage';
+import { CreateSamplePage } from '@/features/lab/CreateSamplePage';
+import { SampleDetailPage } from '@/features/lab/SampleDetailPage';
 import { PageLoader } from '@/components/shared/LoadingSpinner';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { useParams } from 'react-router-dom';
 
 function LoadingScreen() {
   return (
@@ -31,9 +41,7 @@ function UnauthorizedPage() {
         </div>
         <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
         <p className="text-muted-foreground">You don't have permission to access this page.</p>
-        <a href="/dashboard" className="text-primary hover:underline text-sm">
-          Return to dashboard
-        </a>
+        <a href="/dashboard" className="text-primary hover:underline text-sm">Return to dashboard</a>
       </div>
     </div>
   );
@@ -43,7 +51,31 @@ function PlaceholderPage({ label }: { label: string }) {
   return (
     <div className="p-6">
       <div className="bg-card border border-border rounded-xl p-12 flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">{label} — coming in the next phase</p>
+        <p className="text-muted-foreground text-sm">{label} — coming in Phase 10</p>
+      </div>
+    </div>
+  );
+}
+
+function wrap(el: React.ReactNode) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoader />}>{el}</Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function RFQDetailWrapper() {
+  const { id } = useParams<{ id: string }>();
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold text-foreground mb-6">RFQ Detail</h1>
+      <div className="bg-card border border-border rounded-xl p-4">
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <RFQDetailPage rfqId={id!} />
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </div>
   );
@@ -63,40 +95,46 @@ export function AppRouter() {
       />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* All authenticated users — wrapped in AppLayout */}
+      {/* All authenticated users */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route
-            path="/dashboard"
-            element={
-              <ErrorBoundary>
-                <Suspense fallback={<PageLoader />}>
-                  <DashboardPage />
-                </Suspense>
-              </ErrorBoundary>
-            }
-          />
-          <Route path="/lab/*" element={<PlaceholderPage label="Lab Operations" />} />
+          <Route path="/dashboard" element={wrap(<DashboardPage />)} />
+
+          {/* Lab — all roles */}
+          <Route path="/lab" element={wrap(<LabPage />)} />
+          <Route path="/lab/new" element={wrap(<CreateSamplePage />)} />
+          <Route path="/lab/:id" element={wrap(<SampleDetailPage />)} />
+
+          {/* Projects — placeholder until Phase 10 */}
           <Route path="/projects/*" element={<PlaceholderPage label="Projects" />} />
-          <Route path="/procurement/*" element={<PlaceholderPage label="Procurement" />} />
-          <Route path="/inventory/*" element={<PlaceholderPage label="Inventory" />} />
           <Route path="/learning/*" element={<PlaceholderPage label="Learning Plans" />} />
         </Route>
       </Route>
 
-      {/* Admin + Supervisor only */}
+      {/* Admin + Supervisor */}
       <Route element={<ProtectedRoute allowedRoles={['admin', 'supervisor']} />}>
         <Route element={<AppLayout />}>
-          <Route
-            path="/anomalies"
-            element={
-              <ErrorBoundary>
-                <Suspense fallback={<PageLoader />}>
-                  <AnomalyQueuePage />
-                </Suspense>
-              </ErrorBoundary>
-            }
-          />
+          <Route path="/anomalies" element={wrap(<AnomalyQueuePage />)} />
+
+          {/* Procurement */}
+          <Route path="/procurement" element={wrap(<ProcurementPage />)} />
+          <Route path="/procurement/new" element={wrap(<CreateRequestPage />)} />
+          <Route path="/procurement/rfq" element={wrap(<RFQPage />)} />
+          <Route path="/procurement/rfq/:id" element={wrap(<RFQDetailWrapper />)} />
+          <Route path="/procurement/orders" element={wrap(<OrdersPage />)} />
+          <Route path="/procurement/orders/:id" element={wrap(<OrderDetailPage />)} />
+
+          {/* Inventory */}
+          <Route path="/inventory" element={wrap(<InventoryPage />)} />
+          <Route path="/inventory/:id" element={wrap(<ItemDetailPage />)} />
+        </Route>
+      </Route>
+
+      {/* Employee — also sees procurement (own requests) */}
+      <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
+        <Route element={<AppLayout />}>
+          <Route path="/procurement" element={wrap(<ProcurementPage />)} />
+          <Route path="/procurement/new" element={wrap(<CreateRequestPage />)} />
         </Route>
       </Route>
 
