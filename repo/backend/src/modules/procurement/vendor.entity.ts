@@ -11,7 +11,7 @@ export class Vendor {
   @Column({ length: 200 })
   name: string;
 
-  @Column({ type: 'varchar', length: 200, nullable: true })
+  @Column({ name: 'contact_name', type: 'varchar', length: 200, nullable: true })
   contactName: string | null;
 
   @Column({ type: 'varchar', length: 200, nullable: true })
@@ -23,7 +23,7 @@ export class Vendor {
   @Column({ type: 'text', nullable: true })
   address: string | null;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

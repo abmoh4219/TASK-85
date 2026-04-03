@@ -88,20 +88,20 @@
 > Goal: Full procurement flow from request to reconciliation — backend only
 > Pause after this phase and wait for "proceed"
 
-- [ ] 3.1 Create ProcurementModule with PurchaseRequestService, PurchaseRequestController
-- [ ] 3.2 Implement CRUD: POST /procurement/requests (Employee+), GET /procurement/requests (filtered by role)
-- [ ] 3.3 Implement RFQ flow: POST /procurement/rfq (create RFQ from request), POST /procurement/rfq/:id/quotes (add vendor quotes)
-- [ ] 3.4 Implement side-by-side quote comparison endpoint: GET /procurement/rfq/:id/comparison
-- [ ] 3.5 Implement PO issuance: POST /procurement/orders (from approved RFQ, locks unit price for 30 days)
-- [ ] 3.6 Implement price lock enforcement: any attempt to modify PO line price within 30 days of approval → 400 error
-- [ ] 3.7 Implement receiving: POST /procurement/orders/:id/receipts (partial delivery support, backorder tracking)
-- [ ] 3.8 Implement inspection: PATCH /procurement/receipts/:id/inspect (pass/fail per line)
-- [ ] 3.9 Implement put-away: POST /procurement/receipts/:id/putaway (assign location, update inventory level)
-- [ ] 3.10 Implement substitute approval: POST /procurement/requests/:id/substitute (admin approves alternate item)
-- [ ] 3.11 Implement reconciliation: POST /procurement/orders/:id/reconcile (match received vs ordered, flag discrepancies)
-- [ ] 3.12 Implement all status transitions with audit log entries on every state change
-- [ ] 3.13 Write unit tests: price lock validation, partial delivery logic, substitute approval
-- [ ] 3.14 Write e2e tests (real DB): full procurement flow from request to reconciliation in one test suite
+- [x] 3.1 Create ProcurementModule with PurchaseRequestService, PurchaseRequestController
+- [x] 3.2 Implement CRUD: POST /procurement/requests (Employee+), GET /procurement/requests (filtered by role)
+- [x] 3.3 Implement RFQ flow: POST /procurement/rfq (create RFQ from request), POST /procurement/rfq/:id/quotes (add vendor quotes)
+- [x] 3.4 Implement side-by-side quote comparison endpoint: GET /procurement/rfq/:id/comparison
+- [x] 3.5 Implement PO issuance: POST /procurement/orders (from approved RFQ, locks unit price for 30 days)
+- [x] 3.6 Implement price lock enforcement: any attempt to modify PO line price within 30 days of approval → 400 error
+- [x] 3.7 Implement receiving: POST /procurement/orders/:id/receipts (partial delivery support, backorder tracking)
+- [x] 3.8 Implement inspection: PATCH /procurement/receipts/:id/inspect (pass/fail per line)
+- [x] 3.9 Implement put-away: POST /procurement/receipts/:id/putaway (assign location, update inventory level)
+- [x] 3.10 Implement substitute approval: POST /procurement/requests/:id/substitute (admin approves alternate item)
+- [x] 3.11 Implement reconciliation: POST /procurement/orders/:id/reconcile (match received vs ordered, flag discrepancies)
+- [x] 3.12 Implement all status transitions with audit log entries on every state change
+- [x] 3.13 Write unit tests: price lock validation, partial delivery logic, substitute approval
+- [x] 3.14 Write e2e tests (real DB): full procurement flow from request to reconciliation in one test suite
 
 **Phase 3 checkpoint: full procurement flow works via API, price lock enforced, audit log populated.**
 
@@ -111,19 +111,19 @@
 > Goal: Stock tracking, all 4 alert types, replenishment recommendations
 > Pause after this phase and wait for "proceed"
 
-- [ ] 4.1 Create InventoryModule with InventoryService, InventoryController
-- [ ] 4.2 Implement GET /inventory/items (with stock levels, alert badges)
-- [ ] 4.3 Implement stock movement recording: every put-away, issue, adjustment creates a StockMovement record
-- [ ] 4.4 Implement safety stock alert: query items where currentStock < safetyStockLevel → create Alert
-- [ ] 4.5 Implement min/max alert: query items where currentStock < minLevel or > maxLevel → create Alert
-- [ ] 4.6 Implement near-expiration alert: query items where expiresAt <= now + 45 days → create Alert
-- [ ] 4.7 Implement abnormal consumption: calculate 7-day usage, compare to 8-week rolling average, flag if > 40% above → create Alert
-- [ ] 4.8 Create AlertsService: run all 4 checks on a schedule (every hour via @nestjs/schedule cron job)
-- [ ] 4.9 Implement replenishment recommendation: POST /inventory/recommendations/generate — calculate qty = (leadTimeDays + bufferDays) × avgDailyUsage, default buffer = 14 days
-- [ ] 4.10 Implement recommendation acceptance: POST /inventory/recommendations/:id/accept → auto-draft PurchaseRequest
-- [ ] 4.11 Implement recommendation feedback: record impression (recommendation shown) and click (recommendation accepted) per user
-- [ ] 4.12 Write unit tests: each of the 4 alert calculation functions, replenishment qty formula
-- [ ] 4.13 Write e2e tests (real DB): create items with breach conditions → GET /inventory/alerts returns correct alert types
+- [x] 4.1 Create InventoryModule with InventoryService, InventoryController
+- [x] 4.2 Implement GET /inventory/items (with stock levels, alert badges)
+- [x] 4.3 Implement stock movement recording: every put-away, issue, adjustment creates a StockMovement record
+- [x] 4.4 Implement safety stock alert: query items where currentStock < safetyStockLevel → create Alert
+- [x] 4.5 Implement min/max alert: query items where currentStock < minLevel or > maxLevel → create Alert
+- [x] 4.6 Implement near-expiration alert: query items where expiresAt <= now + 45 days → create Alert
+- [x] 4.7 Implement abnormal consumption: calculate 7-day usage, compare to 8-week rolling average, flag if > 40% above → create Alert
+- [x] 4.8 Create AlertsService: run all 4 checks on a schedule (every hour via @nestjs/schedule cron job)
+- [x] 4.9 Implement replenishment recommendation: POST /inventory/recommendations/generate — calculate qty = (leadTimeDays + bufferDays) × avgDailyUsage, default buffer = 14 days
+- [x] 4.10 Implement recommendation acceptance: POST /inventory/recommendations/:id/accept → auto-draft PurchaseRequest
+- [x] 4.11 Implement recommendation feedback: record impression (recommendation shown) and click (recommendation accepted) per user
+- [x] 4.12 Write unit tests: each of the 4 alert calculation functions, replenishment qty formula
+- [x] 4.13 Write e2e tests (real DB): create items with breach conditions → GET /inventory/alerts returns correct alert types
 
 **Phase 4 checkpoint: all 4 alert types trigger correctly with real data, replenishment auto-drafts PR.**
 

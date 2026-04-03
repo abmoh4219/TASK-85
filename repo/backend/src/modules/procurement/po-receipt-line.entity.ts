@@ -33,7 +33,7 @@ export class POReceiptLine {
   @Column({ name: 'received_quantity', type: 'decimal', precision: 12, scale: 4 })
   receivedQuantity: number;
 
-  @Column({ type: 'enum', enum: InspectionResult, default: InspectionResult.PENDING })
+  @Column({ name: 'inspection_result', type: 'enum', enum: InspectionResult, default: InspectionResult.PENDING })
   inspectionResult: InspectionResult;
 
   @Column({ name: 'inspection_notes', type: 'text', nullable: true })

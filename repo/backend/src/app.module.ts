@@ -7,6 +7,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ProcurementModule } from './modules/procurement/procurement.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 import { winstonConfig } from './config/winston.config';
 import { appConfig } from './config/app.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -29,6 +31,8 @@ import { NonceMiddleware } from './common/middleware/nonce.middleware';
     ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
+    ProcurementModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [

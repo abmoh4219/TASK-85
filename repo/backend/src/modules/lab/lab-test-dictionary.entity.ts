@@ -24,7 +24,7 @@ export class LabTestDictionary {
   @Column({ type: 'varchar', length: 50, nullable: true })
   unit: string | null;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   @OneToMany(() => ReferenceRange, (rr) => rr.test, { cascade: true })
