@@ -195,24 +195,24 @@
 > Goal: App shell, role-based dashboard with real data, shared components
 > Pause after this phase and wait for "proceed"
 
-- [ ] 8.1 Create shared layout: Sidebar (role-based nav), TopBar (user info, notifications bell, logout), MainContent area
-- [ ] 8.2 Sidebar navigation per role:
+- [x] 8.1 Create shared layout: Sidebar (role-based nav), TopBar (user info, notifications bell, logout), MainContent area
+- [x] 8.2 Sidebar navigation per role:
        Admin: Dashboard, Procurement, Inventory, Lab, Projects, Learning, Rules Engine, Users, Settings
        Supervisor: Dashboard, Procurement (approve), Inventory, Lab, Projects (review), Anomaly Queue
        HR: Dashboard, Learning Plans, Users (view)
        Employee: Dashboard, Procurement (my requests), Lab (my samples), My Tasks, My Learning
-- [ ] 8.3 Create shared components: DataTable (sortable, paginated), StatusBadge, AlertCard, ConfirmDialog, LoadingSpinner, EmptyState, ErrorBoundary
-- [ ] 8.4 Create API client (axios instance with baseURL=backend, interceptors for token refresh)
-- [ ] 8.5 Create TanStack Query setup (QueryClient, QueryClientProvider, default stale time)
-- [ ] 8.6 Implement role-based dashboard: fetch real data from backend for each role's relevant metrics
+- [x] 8.3 Create shared components: DataTable (sortable, paginated), StatusBadge, AlertCard, ConfirmDialog, LoadingSpinner, EmptyState, ErrorBoundary
+- [x] 8.4 Create API client (axios instance with baseURL=backend, interceptors for token refresh)
+- [x] 8.5 Create TanStack Query setup (QueryClient, QueryClientProvider, default stale time)
+- [x] 8.6 Implement role-based dashboard: fetch real data from backend for each role's relevant metrics
        Admin dashboard: total users, open POs, active alerts count, pending rules
        Supervisor dashboard: pending approvals, open anomalies, project status summary
        HR dashboard: active learning plans, completion rates
        Employee dashboard: my open requests, my tasks, my alerts
-- [ ] 8.7 Implement Smart Alerts panel: fetch GET /inventory/alerts, display as grouped alert cards (safety stock / min-max / expiry / consumption) with severity color coding
-- [ ] 8.8 Implement notification bell: fetch unread notifications, badge count, dropdown list
-- [ ] 8.9 Implement anomaly queue page (Supervisor): list suspicious activity events, mark reviewed
-- [ ] 8.10 Verify: all dashboard data comes from real API calls, no hardcoded values anywhere
+- [x] 8.7 Implement Smart Alerts panel: fetch GET /inventory/alerts, display as grouped alert cards (safety stock / min-max / expiry / consumption) with severity color coding
+- [x] 8.8 Implement notification bell: fetch unread notifications, badge count, dropdown list
+- [x] 8.9 Implement anomaly queue page (Supervisor): list suspicious activity events, mark reviewed
+- [x] 8.10 Verify: all dashboard data comes from real API calls, no hardcoded values anywhere
 
 **Phase 8 checkpoint: dashboard loads real data for all 4 roles, alerts display correctly.**
 

@@ -1,7 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense } from 'react';
 import { useAuth } from './AuthContext';
 import { LoginPage } from './LoginPage';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { AnomalyQueuePage } from '@/features/dashboard/AnomalyQueuePage';
+import { PageLoader } from '@/components/shared/LoadingSpinner';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 function LoadingScreen() {
   return (
@@ -33,28 +39,12 @@ function UnauthorizedPage() {
   );
 }
 
-// Placeholder dashboard — replaced in Phase 8
-function DashboardPlaceholder() {
-  const { user, logout } = useAuth();
+function PlaceholderPage({ label }: { label: string }) {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b px-6 py-4 flex items-center justify-between">
-        <div className="font-semibold text-foreground">MeridianMed</div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
-            {user?.username} ({user?.role})
-          </span>
-          <button
-            onClick={logout}
-            className="text-sm text-destructive hover:underline"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
-      <main className="flex items-center justify-center h-[calc(100vh-65px)]">
-        <p className="text-muted-foreground">Dashboard — coming in Phase 8</p>
-      </main>
+    <div className="p-6">
+      <div className="bg-card border border-border rounded-xl p-12 flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">{label} — coming in the next phase</p>
+      </div>
     </div>
   );
 }
@@ -73,32 +63,49 @@ export function AppRouter() {
       />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* All authenticated users */}
+      {/* All authenticated users — wrapped in AppLayout */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<DashboardPlaceholder />} />
+        <Route element={<AppLayout />}>
+          <Route
+            path="/dashboard"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardPage />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+          <Route path="/lab/*" element={<PlaceholderPage label="Lab Operations" />} />
+          <Route path="/projects/*" element={<PlaceholderPage label="Projects" />} />
+          <Route path="/procurement/*" element={<PlaceholderPage label="Procurement" />} />
+          <Route path="/inventory/*" element={<PlaceholderPage label="Inventory" />} />
+          <Route path="/learning/*" element={<PlaceholderPage label="Learning Plans" />} />
+        </Route>
       </Route>
 
-      {/* Admin-only routes */}
-      <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-        <Route path="/admin/*" element={<div className="p-8 text-muted-foreground">Admin — Phase 13</div>} />
-        <Route path="/rules-engine/*" element={<div className="p-8 text-muted-foreground">Rules Engine — Phase 9</div>} />
-      </Route>
-
-      {/* Admin + Supervisor */}
+      {/* Admin + Supervisor only */}
       <Route element={<ProtectedRoute allowedRoles={['admin', 'supervisor']} />}>
-        <Route path="/procurement/*" element={<div className="p-8 text-muted-foreground">Procurement — Phase 4</div>} />
-        <Route path="/inventory/*" element={<div className="p-8 text-muted-foreground">Inventory — Phase 5</div>} />
+        <Route element={<AppLayout />}>
+          <Route
+            path="/anomalies"
+            element={
+              <ErrorBoundary>
+                <Suspense fallback={<PageLoader />}>
+                  <AnomalyQueuePage />
+                </Suspense>
+              </ErrorBoundary>
+            }
+          />
+        </Route>
       </Route>
 
-      {/* HR */}
-      <Route element={<ProtectedRoute allowedRoles={['admin', 'hr']} />}>
-        <Route path="/learning/*" element={<div className="p-8 text-muted-foreground">Learning — Phase 7</div>} />
-      </Route>
-
-      {/* All roles */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/lab/*" element={<div className="p-8 text-muted-foreground">Lab — Phase 6</div>} />
-        <Route path="/projects/*" element={<div className="p-8 text-muted-foreground">Projects — Phase 7</div>} />
+      {/* Admin only */}
+      <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+        <Route element={<AppLayout />}>
+          <Route path="/rules-engine/*" element={<PlaceholderPage label="Rules Engine" />} />
+          <Route path="/admin/*" element={<PlaceholderPage label="Admin" />} />
+        </Route>
       </Route>
 
       {/* Catch-all */}

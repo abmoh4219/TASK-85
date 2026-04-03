@@ -13,6 +13,7 @@ import { LabModule } from './modules/lab/lab.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { LearningModule } from './modules/learning/learning.module';
 import { RulesEngineModule } from './modules/rules-engine/rules-engine.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { winstonConfig } from './config/winston.config';
 import { appConfig } from './config/app.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -41,6 +42,7 @@ import { NonceMiddleware } from './common/middleware/nonce.middleware';
     ProjectsModule,
     LearningModule,
     RulesEngineModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
