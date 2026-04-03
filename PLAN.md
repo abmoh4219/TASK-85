@@ -172,20 +172,20 @@
 > Goal: HR learning plans with lifecycle, rules engine with versioning and rollback
 > Pause after this phase and wait for "proceed"
 
-- [ ] 7.1 Create LearningModule with LearningService, LearningController
-- [ ] 7.2 Implement learning plan CRUD: POST/GET/PATCH /learning/plans (HR only)
-- [ ] 7.3 Implement learning plan lifecycle: not-started → active → paused → completed → archived (enforce valid transitions)
-- [ ] 7.4 Implement learning goals: POST /learning/plans/:id/goals (with priority, tags, studyFrequency rule e.g. "3 sessions/week")
-- [ ] 7.5 Implement study frequency enforcement: validate sessions against frequency rule, flag if below target
-- [ ] 7.6 Create RulesEngineModule with RulesService, RulesController
-- [ ] 7.7 Implement business rule CRUD: POST/GET /rules (admin only, with versioning — each update creates new version)
-- [ ] 7.8 Implement conflict validation: POST /rules/validate — check new rule against existing active rules for conflicts
-- [ ] 7.9 Implement impact assessment: POST /rules/:id/impact — report which workflows/thresholds change before activation
-- [ ] 7.10 Implement staged rollout: PATCH /rules/:id/rollout — status: draft/staged/active, with A-B flag for subset rollout
-- [ ] 7.11 Implement hot update: PATCH /rules/:id/activate — applies rule change without restart
-- [ ] 7.12 Implement rollback: POST /rules/:id/rollback — reverts to previous version, must complete in <5min (implement with DB transaction, record rollbackAt timestamp, assert duration)
-- [ ] 7.13 Write unit tests: lifecycle transition validation (learning plans), rule conflict detection, rollback timing
-- [ ] 7.14 Write e2e tests (real DB): create rule → activate → rollback → verify previous version restored
+- [x] 7.1 Create LearningModule with LearningService, LearningController
+- [x] 7.2 Implement learning plan CRUD: POST/GET/PATCH /learning/plans (HR only)
+- [x] 7.3 Implement learning plan lifecycle: not-started → active → paused → completed → archived (enforce valid transitions)
+- [x] 7.4 Implement learning goals: POST /learning/plans/:id/goals (with priority, tags, studyFrequency rule e.g. "3 sessions/week")
+- [x] 7.5 Implement study frequency enforcement: validate sessions against frequency rule, flag if below target
+- [x] 7.6 Create RulesEngineModule with RulesService, RulesController
+- [x] 7.7 Implement business rule CRUD: POST/GET /rules (admin only, with versioning — each update creates new version)
+- [x] 7.8 Implement conflict validation: POST /rules/validate — check new rule against existing active rules for conflicts
+- [x] 7.9 Implement impact assessment: POST /rules/:id/impact — report which workflows/thresholds change before activation
+- [x] 7.10 Implement staged rollout: PATCH /rules/:id/rollout — status: draft/staged/active, with A-B flag for subset rollout
+- [x] 7.11 Implement hot update: PATCH /rules/:id/activate — applies rule change without restart
+- [x] 7.12 Implement rollback: POST /rules/:id/rollback — reverts to previous version, must complete in <5min (implement with DB transaction, record rollbackAt timestamp, assert duration)
+- [x] 7.13 Write unit tests: lifecycle transition validation (learning plans), rule conflict detection, rollback timing
+- [x] 7.14 Write e2e tests (real DB): create rule → activate → rollback → verify previous version restored
 
 **Phase 7 checkpoint: learning plan lifecycle enforced, rule rollback completes and restores previous version.**
 
