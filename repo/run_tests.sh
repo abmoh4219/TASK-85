@@ -14,7 +14,7 @@ npx jest --testPathPattern="\.spec\.ts$" --forceExit --passWithNoTests --ci 2>&1
 
 echo ""
 echo "--- Backend Integration/E2E Tests (Real DB) ---"
-npx jest --testPathPattern="\.e2e-spec\.ts$" --runInBand --forceExit --passWithNoTests --ci 2>&1 || FAILED=1
+npx jest --config ./test/jest-e2e.json --testPathPattern="\.e2e-spec\.ts$" --runInBand --forceExit --passWithNoTests --ci 2>&1 || FAILED=1
 
 echo ""
 echo "========================================"

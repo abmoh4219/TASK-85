@@ -60,25 +60,25 @@
 > Goal: Login, JWT, refresh tokens, logout, role guards, rate limiting
 > Pause after this phase and wait for "proceed"
 
-- [ ] 2.1 Create AuthModule with AuthService, AuthController
-- [ ] 2.2 Implement POST /auth/login: validate credentials, issue JWT (15min) + refresh token (8hr, stored hashed in DB)
-- [ ] 2.3 Implement POST /auth/refresh: validate refresh token from DB, rotate (revoke old, issue new), return new access token
-- [ ] 2.4 Implement POST /auth/logout: revoke refresh token in DB, clear client token
-- [ ] 2.5 Create JwtStrategy (Passport): validate JWT, attach user to request
-- [ ] 2.6 Create RolesGuard: reads @Roles() decorator, checks req.user.role — applied globally, skipped with @Public()
-- [ ] 2.7 Create ActionGuard: reads @RequireAction() decorator for fine-grained action-level RBAC
-- [ ] 2.8 Implement rate limiter: @nestjs/throttler, 10 requests/min for sensitive endpoints
-- [ ] 2.9 Implement nonce + timestamp validation middleware for sensitive write operations
-- [ ] 2.10 Create GET /auth/me: return current user profile (no password hash)
-- [ ] 2.11 Frontend: create login page (username + password, no role selector, no defaults shown)
-- [ ] 2.12 Frontend: create AuthContext (store access token in memory, refresh token in httpOnly cookie or localStorage)
-- [ ] 2.13 Frontend: create Axios interceptor (auto-call /auth/refresh on 401, retry original request)
-- [ ] 2.14 Frontend: create ProtectedRoute component (redirects to /login if not authenticated)
-- [ ] 2.15 Frontend: create RoleRoute component (redirects to /unauthorized if wrong role)
-- [ ] 2.16 Frontend: create app router (React Router v6) with role-based route protection
-- [ ] 2.17 Write backend unit tests: AuthService.login (valid credentials, wrong password, inactive user)
-- [ ] 2.18 Write backend e2e tests (real DB): POST /auth/login, POST /auth/refresh, POST /auth/logout, GET /auth/me with expired token
-- [ ] 2.19 Verify: docker compose run test → auth tests pass
+- [x] 2.1 Create AuthModule with AuthService, AuthController
+- [x] 2.2 Implement POST /auth/login: validate credentials, issue JWT (15min) + refresh token (8hr, stored hashed in DB)
+- [x] 2.3 Implement POST /auth/refresh: validate refresh token from DB, rotate (revoke old, issue new), return new access token
+- [x] 2.4 Implement POST /auth/logout: revoke refresh token in DB, clear client token
+- [x] 2.5 Create JwtStrategy (Passport): validate JWT, attach user to request
+- [x] 2.6 Create RolesGuard: reads @Roles() decorator, checks req.user.role — applied globally, skipped with @Public()
+- [x] 2.7 Create ActionGuard: reads @RequireAction() decorator for fine-grained action-level RBAC
+- [x] 2.8 Implement rate limiter: @nestjs/throttler, 10 requests/min for sensitive endpoints
+- [x] 2.9 Implement nonce + timestamp validation middleware for sensitive write operations
+- [x] 2.10 Create GET /auth/me: return current user profile (no password hash)
+- [x] 2.11 Frontend: create login page (username + password, no role selector, no defaults shown)
+- [x] 2.12 Frontend: create AuthContext (store access token in memory, refresh token in httpOnly cookie or localStorage)
+- [x] 2.13 Frontend: create Axios interceptor (auto-call /auth/refresh on 401, retry original request)
+- [x] 2.14 Frontend: create ProtectedRoute component (redirects to /login if not authenticated)
+- [x] 2.15 Frontend: create RoleRoute component (redirects to /unauthorized if wrong role)
+- [x] 2.16 Frontend: create app router (React Router v6) with role-based route protection
+- [x] 2.17 Write backend unit tests: AuthService.login (valid credentials, wrong password, inactive user)
+- [x] 2.18 Write backend e2e tests (real DB): POST /auth/login, POST /auth/refresh, POST /auth/logout, GET /auth/me with expired token
+- [x] 2.19 Verify: docker compose run test → auth tests pass
 
 **Phase 2 checkpoint: login works for all 4 roles, expired token auto-refreshes, wrong role → 403.**
 
