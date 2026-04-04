@@ -9,7 +9,7 @@ Backend API: http://localhost:4000
 
 ## Test
 ```bash
-docker compose -f docker-compose.test.yml run --build test
+docker compose -f docker-compose.test.yml run --build test-runner
 ```
 
 ## Stop

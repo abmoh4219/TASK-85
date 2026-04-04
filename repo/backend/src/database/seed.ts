@@ -19,13 +19,13 @@ const AppDataSource = new DataSource({
 
 async function seed() {
   await AppDataSource.initialize();
-  console.log('DB connected — starting seed...');
+  process.stdout.write('DB connected — starting seed...\n');
 
   const userCount = await AppDataSource.query(
     `SELECT COUNT(*)::int AS cnt FROM users WHERE deleted_at IS NULL`,
   );
   if (userCount[0].cnt > 0) {
-    console.log('Seed data already present — skipping.');
+    process.stdout.write('Seed data already present — skipping.\n');
     await AppDataSource.destroy();
     return;
   }
@@ -49,7 +49,7 @@ async function seed() {
       (uuid_generate_v4(), 'hr',         $3, 'hr',         true, now(), now()),
       (uuid_generate_v4(), 'employee',   $4, 'employee',   true, now(), now())
   `, [adminHash, supHash, hrHash, empHash]);
-  console.log('✓ Users seeded');
+  process.stdout.write('✓ Users seeded\n');
 
   // ── Vendors ──────────────────────────────────────────────────────────────
   await AppDataSource.query(`
@@ -61,7 +61,7 @@ async function seed() {
       (uuid_generate_v4(), 'PharmaDirect',        'Tom Weiss',     'tom@pharmadirect.example',  '+1-555-0103', true, now(), now()),
       (uuid_generate_v4(), 'EquipCare Ltd',       'Lisa Morgan',   'lisa@equipcare.example',    '+1-555-0104', true, now(), now())
   `);
-  console.log('✓ Vendors seeded');
+  process.stdout.write('✓ Vendors seeded\n');
 
   // ── Item categories ──────────────────────────────────────────────────────
   await AppDataSource.query(`
@@ -73,7 +73,7 @@ async function seed() {
       (uuid_generate_v4(), 'Diagnostic Equipment','Reusable diagnostic instruments and devices',   now(), now()),
       (uuid_generate_v4(), 'Office Supplies',    'General office and administrative supplies',     now(), now())
   `);
-  console.log('✓ Item categories seeded');
+  process.stdout.write('✓ Item categories seeded\n');
 
   // ── Items ────────────────────────────────────────────────────────────────
   const categories = await AppDataSource.query(
@@ -100,7 +100,7 @@ async function seed() {
       (uuid_generate_v4(), 'Specimen Cup 60ml',  'CON-SPC-60ML-100','Pack of 100 specimen cups 60 ml',  'pack',  $3, 15, 8,   80,  5,  14, true, now(), now()),
       (uuid_generate_v4(), 'Digital Thermometer','EQP-THM-DIG-001', 'Digital clinical thermometer',     'unit',  $4, 5,  2,   20,  7,  14, true, now(), now())
   `, [catId('PPE'), catId('Lab Reagents'), catId('Medical Consumables'), catId('Diagnostic Equipment')]);
-  console.log('✓ Items seeded');
+  process.stdout.write('✓ Items seeded\n');
 
   // ── Inventory levels for each item ───────────────────────────────────────
   await AppDataSource.query(`
@@ -111,7 +111,7 @@ async function seed() {
     FROM items
     ON CONFLICT DO NOTHING
   `);
-  console.log('✓ Inventory levels seeded');
+  process.stdout.write('✓ Inventory levels seeded\n');
 
   // ── Lab test dictionary ───────────────────────────────────────────────────
   await AppDataSource.query(`
@@ -128,7 +128,7 @@ async function seed() {
       (uuid_generate_v4(), 'C-Reactive Protein',          'CRP',      'Inflammation marker',                            'serum',       'mg/L',     true, now(), now()),
       (uuid_generate_v4(), 'Prothrombin Time',            'PT',       'Blood coagulation test',                         'plasma',      'seconds',  true, now(), now())
   `);
-  console.log('✓ Lab test dictionary seeded');
+  process.stdout.write('✓ Lab test dictionary seeded\n');
 
   // ── Reference ranges for selected tests ──────────────────────────────────
   const tests = await AppDataSource.query(
@@ -152,13 +152,13 @@ async function seed() {
     testId('SCR'),
     testId('TSH'),
   ]);
-  console.log('✓ Reference ranges seeded');
+  process.stdout.write('✓ Reference ranges seeded\n');
 
-  console.log('\n✅  Seed complete.');
+  process.stdout.write('\n✅  Seed complete.\n');
   await AppDataSource.destroy();
 }
 
 seed().catch((err) => {
-  console.error('Seed failed:', err);
+  process.stderr.write(`Seed failed: ${err}\n`);
   process.exit(1);
 });

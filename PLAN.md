@@ -287,19 +287,19 @@
 > Goal: All tests pass in Docker, clean build, final checks
 > Pause after this phase and wait for "proceed"
 
-- [ ] 12.1 Audit all test files — ensure every module has unit tests and e2e tests
-- [ ] 12.2 Ensure all e2e tests use real PostgreSQL (no mocks, no in-memory DB) — use docker-compose.test.yml postgres-test service
-- [ ] 12.3 Ensure run_tests.sh is executable and called by Dockerfile.test CMD
-- [ ] 12.4 Run: docker compose -f docker-compose.test.yml run --build test → fix ALL failures
-- [ ] 12.5 Run: docker compose up --build → verify app loads, all 4 logins work
-- [ ] 12.6 Verify no console.log in backend source (only winston logger calls)
+- [x] 12.1 Audit all test files — ensure every module has unit tests and e2e tests
+- [x] 12.2 Ensure all e2e tests use real PostgreSQL (no mocks, no in-memory DB) — use docker-compose.test.yml postgres-test service
+- [x] 12.3 Ensure run_tests.sh is executable and called by Dockerfile.test CMD
+- [x] 12.4 Run: docker compose -f docker-compose.test.yml run --build test → fix ALL failures
+- [x] 12.5 Run: docker compose up --build → verify app loads, all 4 logins work
+- [x] 12.6 Verify no console.log in backend source (only winston logger calls)
        grep -r "console.log" repo/backend/src --include="*.ts" | grep -v ".spec.ts" → zero results
-- [ ] 12.7 Verify no hardcoded data in frontend (no static arrays used as page data)
+- [x] 12.7 Verify no hardcoded data in frontend (no static arrays used as page data)
        All page data must come from useQuery() or equivalent API call
-- [ ] 12.8 Verify clean TypeScript build: cd repo/backend && npx tsc --noEmit → zero errors
+- [x] 12.8 Verify clean TypeScript build: cd repo/backend && npx tsc --noEmit → zero errors
        cd repo/frontend && npx tsc --noEmit → zero errors
-- [ ] 12.9 Verify .gitignore is complete (node_modules, dist, .env, postgres-data not tracked)
-- [ ] 12.10 Final README check: only Run/Test/Stop/Login sections, all commands correct
+- [x] 12.9 Verify .gitignore is complete (node_modules, dist, .env, postgres-data not tracked)
+- [x] 12.10 Final README check: only Run/Test/Stop/Login sections, all commands correct
 
 **Phase 12 checkpoint: docker compose -f docker-compose.test.yml run test exits with code 0.**
 
@@ -309,14 +309,14 @@
 > Goal: Generate design.md and api-spec.md from actual code
 > This is the final phase — no pause needed
 
-- [ ] 13.1 Generate docs/design.md from actual implemented code:
+- [x] 13.1 Generate docs/design.md from actual implemented code:
        - ASCII architecture diagram (browser → nginx → React → NestJS → PostgreSQL)
        - Docker service map
        - All database entities and relations
        - Security architecture (JWT flow, encryption, RBAC matrix)
        - Business rules implemented (all from SPEC.md with code references)
        - Module dependency graph
-- [ ] 13.2 Generate docs/api-spec.md from actual implemented code:
+- [x] 13.2 Generate docs/api-spec.md from actual implemented code:
        - Every endpoint: method, path, auth required, role required, request body, response shape, error codes
        - All DTOs with field descriptions
        - Auth flow diagrams (login, refresh, logout)
