@@ -3,6 +3,7 @@ import {
   CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany,
 } from 'typeorm';
 import { LabResult } from './lab-result.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum SampleStatus {
   SUBMITTED = 'submitted',
@@ -22,7 +23,7 @@ export class LabSample {
   @Column({ name: 'submitted_by_id' })
   submittedById: string;
 
-  @Column({ name: 'patient_identifier', type: 'varchar', length: 200, nullable: true })
+  @Column({ name: 'patient_identifier', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   patientIdentifier: string | null;
 
   @Column({ name: 'sample_type', length: 100 })

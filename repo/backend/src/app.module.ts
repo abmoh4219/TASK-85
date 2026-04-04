@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WinstonModule } from 'nest-winston';
 import { APP_GUARD } from '@nestjs/core';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -19,7 +20,9 @@ import { winstonConfig } from './config/winston.config';
 import { appConfig } from './config/app.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { AnomalyThrottlerGuard } from './common/guards/anomaly-throttler.guard';
 import { NonceMiddleware } from './common/middleware/nonce.middleware';
+import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
 
 @Module({
   imports: [
@@ -35,6 +38,7 @@ import { NonceMiddleware } from './common/middleware/nonce.middleware';
       },
     ]),
     ScheduleModule.forRoot(),
+    TypeOrmModule.forFeature([AnomalyEvent]),
     DatabaseModule,
     AuthModule,
     ProcurementModule,
@@ -48,6 +52,7 @@ import { NonceMiddleware } from './common/middleware/nonce.middleware';
   ],
   controllers: [AppController],
   providers: [
+    { provide: APP_GUARD, useClass: AnomalyThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

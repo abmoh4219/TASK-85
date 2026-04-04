@@ -37,6 +37,19 @@ export class LabService {
     private readonly auditLog: AuditLogService,
   ) {}
 
+  // ── Identifier Masking ──────────────────────────────────────────────────
+
+  private maskSample(sample: LabSample): LabSample {
+    if (sample.patientIdentifier) {
+      sample.patientIdentifier = '****' + sample.patientIdentifier.slice(-4);
+    }
+    return sample;
+  }
+
+  private maskSamples(samples: LabSample[]): LabSample[] {
+    return samples.map((s) => this.maskSample(s));
+  }
+
   // ── Test Dictionary ─────────────────────────────────────────────────────
 
   async createTest(dto: CreateTestDto, userId: string): Promise<LabTestDictionary> {
@@ -106,17 +119,18 @@ export class LabService {
       userId, action: 'CREATE', entityType: 'LabSample', entityId: sample.id,
       after: { sampleNumber, status: SampleStatus.SUBMITTED },
     });
-    return sample;
+    return this.maskSample(sample);
   }
 
   async getSamples(user: { id: string; role: UserRole }): Promise<LabSample[]> {
     // Employees see only their own samples
     const where = user.role === UserRole.EMPLOYEE ? { submittedById: user.id } : {};
-    return this.sampleRepo.find({
+    const samples = await this.sampleRepo.find({
       where,
       relations: ['results'],
       order: { createdAt: 'DESC' },
     });
+    return this.maskSamples(samples);
   }
 
   async getSample(id: string): Promise<LabSample> {
@@ -125,7 +139,7 @@ export class LabService {
       relations: ['results', 'results.test'],
     });
     if (!sample) throw new NotFoundException('Sample not found');
-    return sample;
+    return this.maskSample(sample);
   }
 
   async advanceSampleStatus(id: string, targetStatus: SampleStatus, userId: string): Promise<LabSample> {
@@ -146,7 +160,7 @@ export class LabService {
       userId, action: 'STATUS_CHANGE', entityType: 'LabSample', entityId: id,
       before, after: { status: targetStatus },
     });
-    return sample;
+    return this.maskSample(sample);
   }
 
   // ── Results ─────────────────────────────────────────────────────────────

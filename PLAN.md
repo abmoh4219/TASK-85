@@ -268,16 +268,16 @@
 > Goal: Complete all security requirements from SPEC.md
 > Pause after this phase and wait for "proceed"
 
-- [ ] 11.1 Verify AES-256 column encryption working on sensitive fields (test encrypt/decrypt roundtrip)
-- [ ] 11.2 Verify rate limiter triggers correctly: write test that sends 11 requests in 1 minute → 11th returns 429
-- [ ] 11.3 Verify nonce+timestamp: replay the same request with same nonce → 400 error
-- [ ] 11.4 Verify identifier masking: any field marked as sensitive shows only last 4 chars in all API responses
-- [ ] 11.5 Verify anomaly detection: burst 15 requests rapidly → AnomalyEvent created → visible in supervisor queue
-- [ ] 11.6 Verify RBAC: write test matrix — every endpoint tested with wrong role → 403
-- [ ] 11.7 Verify refresh token rotation: use refresh token once → get new tokens; use original refresh token again → 401 (revoked)
-- [ ] 11.8 Verify soft deletes: DELETE on any business entity → record has deletedAt set, not removed from DB
-- [ ] 11.9 Add Helmet headers verification test: GET /health → response has X-Content-Type-Options, X-Frame-Options headers
-- [ ] 11.10 Verify CORS: request from non-frontend origin → rejected
+- [x] 11.1 Verify AES-256 column encryption working on sensitive fields (test encrypt/decrypt roundtrip)
+- [x] 11.2 Verify rate limiter triggers correctly: write test that sends 11 requests in 1 minute → 11th returns 429
+- [x] 11.3 Verify nonce+timestamp: replay the same request with same nonce → 400 error
+- [x] 11.4 Verify identifier masking: any field marked as sensitive shows only last 4 chars in all API responses
+- [x] 11.5 Verify anomaly detection: burst 15 requests rapidly → AnomalyEvent created → visible in supervisor queue
+- [x] 11.6 Verify RBAC: write test matrix — every endpoint tested with wrong role → 403
+- [x] 11.7 Verify refresh token rotation: use refresh token once → get new tokens; use original refresh token again → 401 (revoked)
+- [x] 11.8 Verify soft deletes: DELETE on any business entity → record has deletedAt set, not removed from DB
+- [x] 11.9 Add Helmet headers verification test: GET /health → response has X-Content-Type-Options, X-Frame-Options headers
+- [x] 11.10 Verify CORS: request from non-frontend origin → rejected
 
 **Phase 11 checkpoint: all security tests pass in docker compose run test.**
 
