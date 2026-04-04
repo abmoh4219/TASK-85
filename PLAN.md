@@ -245,20 +245,20 @@
 > Goal: Work tracking, HR learning plans, rules engine admin UI
 > Pause after this phase and wait for "proceed"
 
-- [ ] 10.1 Projects: Project list page with status filter and create button
-- [ ] 10.2 Projects: Project detail page (milestones progress bar, tasks list, deliverables section)
-- [ ] 10.3 Projects: Task detail (submit deliverable, acceptance scoring form for supervisors)
-- [ ] 10.4 Learning: Learning plan list page (HR view: all plans; Employee view: my plans)
-- [ ] 10.5 Learning: Learning plan detail (goals list, study frequency rule display, session log)
-- [ ] 10.6 Learning: Learning plan lifecycle controls (HR can move through states with confirmation)
-- [ ] 10.7 Rules Engine: Rule list page (admin only, shows version, status, rollout %)
-- [ ] 10.8 Rules Engine: Rule editor (create/edit rule with conflict validation feedback before save)
-- [ ] 10.9 Rules Engine: Impact assessment modal (shows affected workflows before activation)
-- [ ] 10.10 Rules Engine: Rollout controls (staged rollout slider, A-B toggle, activate, rollback button)
-- [ ] 10.11 Admin: User management (create/edit/deactivate users, assign roles)
-- [ ] 10.12 Admin: Catalog configuration (item categories, vendors, reference ranges)
-- [ ] 10.13 Admin: Security settings (export permissions per role, rate limit config display)
-- [ ] 10.14 Verify: all pages load real data, no 404 routes, no broken navigation
+- [x] 10.1 Projects: Project list page with status filter and create button
+- [x] 10.2 Projects: Project detail page (milestones progress bar, tasks list, deliverables section)
+- [x] 10.3 Projects: Task detail (submit deliverable, acceptance scoring form for supervisors)
+- [x] 10.4 Learning: Learning plan list page (HR view: all plans; Employee view: my plans)
+- [x] 10.5 Learning: Learning plan detail (goals list, study frequency rule display, session log)
+- [x] 10.6 Learning: Learning plan lifecycle controls (HR can move through states with confirmation)
+- [x] 10.7 Rules Engine: Rule list page (admin only, shows version, status, rollout %)
+- [x] 10.8 Rules Engine: Rule editor (create/edit rule with conflict validation feedback before save)
+- [x] 10.9 Rules Engine: Impact assessment modal (shows affected workflows before activation)
+- [x] 10.10 Rules Engine: Rollout controls (staged rollout slider, A-B toggle, activate, rollback button)
+- [x] 10.11 Admin: User management (create/edit/deactivate users, assign roles)
+- [x] 10.12 Admin: Catalog configuration (item categories, vendors, reference ranges)
+- [x] 10.13 Admin: Security settings (export permissions per role, rate limit config display)
+- [x] 10.14 Verify: all pages load real data, no 404 routes, no broken navigation
 
 **Phase 10 checkpoint: all 8 feature areas navigable, rules engine rollback triggerable from UI.**
 

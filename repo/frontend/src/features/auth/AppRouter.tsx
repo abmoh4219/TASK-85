@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Suspense } from 'react';
 import { useAuth } from './AuthContext';
 import { LoginPage } from './LoginPage';
@@ -15,9 +15,15 @@ import { ItemDetailPage } from '@/features/inventory/ItemDetailPage';
 import { LabPage } from '@/features/lab/LabPage';
 import { CreateSamplePage } from '@/features/lab/CreateSamplePage';
 import { SampleDetailPage } from '@/features/lab/SampleDetailPage';
+import { ProjectsPage } from '@/features/projects/ProjectsPage';
+import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage';
+import { LearningPage } from '@/features/learning/LearningPage';
+import { LearningPlanDetailPage } from '@/features/learning/LearningPlanDetailPage';
+import { RulesEnginePage } from '@/features/rules-engine/RulesEnginePage';
+import { UsersPage } from '@/features/admin/UsersPage';
+import { SettingsPage } from '@/features/admin/SettingsPage';
 import { PageLoader } from '@/components/shared/LoadingSpinner';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
-import { useParams } from 'react-router-dom';
 
 function LoadingScreen() {
   return (
@@ -42,16 +48,6 @@ function UnauthorizedPage() {
         <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
         <p className="text-muted-foreground">You don't have permission to access this page.</p>
         <a href="/dashboard" className="text-primary hover:underline text-sm">Return to dashboard</a>
-      </div>
-    </div>
-  );
-}
-
-function PlaceholderPage({ label }: { label: string }) {
-  return (
-    <div className="p-6">
-      <div className="bg-card border border-border rounded-xl p-12 flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">{label} — coming in Phase 10</p>
       </div>
     </div>
   );
@@ -89,25 +85,20 @@ export function AppRouter() {
   return (
     <Routes>
       {/* Public */}
-      <Route
-        path="/login"
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
-      />
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* All authenticated users */}
+      {/* All authenticated */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={wrap(<DashboardPage />)} />
-
-          {/* Lab — all roles */}
           <Route path="/lab" element={wrap(<LabPage />)} />
           <Route path="/lab/new" element={wrap(<CreateSamplePage />)} />
           <Route path="/lab/:id" element={wrap(<SampleDetailPage />)} />
-
-          {/* Projects — placeholder until Phase 10 */}
-          <Route path="/projects/*" element={<PlaceholderPage label="Projects" />} />
-          <Route path="/learning/*" element={<PlaceholderPage label="Learning Plans" />} />
+          <Route path="/projects" element={wrap(<ProjectsPage />)} />
+          <Route path="/projects/:id" element={wrap(<ProjectDetailPage />)} />
+          <Route path="/learning" element={wrap(<LearningPage />)} />
+          <Route path="/learning/:id" element={wrap(<LearningPlanDetailPage />)} />
         </Route>
       </Route>
 
@@ -115,22 +106,18 @@ export function AppRouter() {
       <Route element={<ProtectedRoute allowedRoles={['admin', 'supervisor']} />}>
         <Route element={<AppLayout />}>
           <Route path="/anomalies" element={wrap(<AnomalyQueuePage />)} />
-
-          {/* Procurement */}
           <Route path="/procurement" element={wrap(<ProcurementPage />)} />
           <Route path="/procurement/new" element={wrap(<CreateRequestPage />)} />
           <Route path="/procurement/rfq" element={wrap(<RFQPage />)} />
           <Route path="/procurement/rfq/:id" element={wrap(<RFQDetailWrapper />)} />
           <Route path="/procurement/orders" element={wrap(<OrdersPage />)} />
           <Route path="/procurement/orders/:id" element={wrap(<OrderDetailPage />)} />
-
-          {/* Inventory */}
           <Route path="/inventory" element={wrap(<InventoryPage />)} />
           <Route path="/inventory/:id" element={wrap(<ItemDetailPage />)} />
         </Route>
       </Route>
 
-      {/* Employee — also sees procurement (own requests) */}
+      {/* Employee procurement */}
       <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
         <Route element={<AppLayout />}>
           <Route path="/procurement" element={wrap(<ProcurementPage />)} />
@@ -141,16 +128,21 @@ export function AppRouter() {
       {/* Admin only */}
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route element={<AppLayout />}>
-          <Route path="/rules-engine/*" element={<PlaceholderPage label="Rules Engine" />} />
-          <Route path="/admin/*" element={<PlaceholderPage label="Admin" />} />
+          <Route path="/rules-engine" element={wrap(<RulesEnginePage />)} />
+          <Route path="/admin/users" element={wrap(<UsersPage />)} />
+          <Route path="/admin/settings" element={wrap(<SettingsPage />)} />
+        </Route>
+      </Route>
+
+      {/* HR admin users (read + create) */}
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'hr']} />}>
+        <Route element={<AppLayout />}>
+          <Route path="/admin/users" element={wrap(<UsersPage />)} />
         </Route>
       </Route>
 
       {/* Catch-all */}
-      <Route
-        path="*"
-        element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />}
-      />
+      <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
     </Routes>
   );
 }
