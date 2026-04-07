@@ -1,11 +1,26 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: false,
+});
+
+// ── Nonce/timestamp interceptor for replay protection ────────────────────
+const AUTH_PATHS = ['/auth/login', '/auth/refresh', '/auth/logout'];
+
+apiClient.interceptors.request.use((config) => {
+  const method = config.method?.toUpperCase();
+  if (method && ['POST', 'PATCH', 'DELETE'].includes(method)) {
+    const url = config.url || '';
+    if (!AUTH_PATHS.some((p) => url.includes(p))) {
+      config.headers['X-Nonce'] = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      config.headers['X-Timestamp'] = String(Date.now());
+    }
+  }
+  return config;
 });
 
 // ── Token storage helpers ─────────────────────────────────────────────────

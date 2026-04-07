@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { nh } from './helpers/nonce.helper';
 
 /**
  * Full procurement flow e2e test (real PostgreSQL via docker-compose.test.yml)
@@ -142,6 +143,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/procurement/requests')
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({
         justification: 'E2E test requisition',
         items: [
@@ -161,6 +163,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/procurement/requests/${prId}/submit`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .expect(200);
 
     expect(res.body.data.status).toBe('submitted');
@@ -172,6 +175,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/procurement/requests/${prId}/approve`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(200);
 
     expect(res.body.data.status).toBe('approved');
@@ -183,6 +187,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/procurement/rfq')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         purchaseRequestId: prId,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -204,6 +209,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/procurement/rfq/${rfqId}/quotes`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         rfqLineId,
         vendorId,
@@ -237,6 +243,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/procurement/orders')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         rfqId,
         vendorId,
@@ -259,6 +266,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/procurement/orders/${poId}/approve`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(200);
 
     expect(res.body.data.status).toBe('approved');
@@ -275,6 +283,7 @@ describe('Procurement (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/procurement/orders/${poId}/lines/${poLineId}/price`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ unitPrice: 30 })
       .expect(400);
   });
@@ -285,6 +294,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/procurement/orders/${poId}/receipts`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         notes: 'Partial delivery',
         lines: [
@@ -317,6 +327,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/procurement/receipts/${receiptId}/inspect`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         lines: [
           { receiptLineId, result: 'passed', notes: 'All items in good condition' },
@@ -341,6 +352,7 @@ describe('Procurement (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/procurement/receipts/${receiptId}/putaway`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         lines: [
           { receiptLineId, location: 'Shelf A-1', quantityStored: 60 },
@@ -370,6 +382,7 @@ describe('Procurement (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/procurement/orders/${poId}/reconcile`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(201);
 
     // 60 received vs 100 ordered → discrepancy
@@ -386,6 +399,7 @@ describe('Procurement (e2e)', () => {
     const createRes = await request(app.getHttpServer())
       .post('/procurement/requests')
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({
         justification: 'RBAC test',
         items: [{ itemId, quantity: 1, unitOfMeasure: 'each' }],
@@ -397,11 +411,13 @@ describe('Procurement (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/procurement/requests/${newPrId}/submit`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .expect(200);
 
     await request(app.getHttpServer())
       .patch(`/procurement/requests/${newPrId}/approve`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .expect(403);
   });
 

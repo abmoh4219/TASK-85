@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { nh } from './helpers/nonce.helper';
 
 /**
  * Projects & Work Tracking e2e tests (real PostgreSQL)
@@ -85,6 +86,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/projects')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         title: 'E2E Test Project',
         description: 'Full lifecycle test project',
@@ -102,6 +104,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/projects/${projectId}/milestones`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         title: 'Phase 1 Complete',
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -118,6 +121,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/milestones/${milestoneId}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ progressPercent: 50 })
       .expect(200);
 
@@ -129,6 +133,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/milestones/${milestoneId}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ progressPercent: 100 })
       .expect(200);
 
@@ -142,6 +147,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/projects/${projectId}/tasks`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({
         title: 'Write unit tests',
         description: 'Write comprehensive unit tests for module X',
@@ -158,6 +164,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/tasks/${taskId}/status`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({ status: 'in_progress' })
       .expect(200);
 
@@ -168,6 +175,7 @@ describe('Projects (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/projects/${projectId}/tasks/${taskId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'approved' })
       .expect(400);
   });
@@ -178,6 +186,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/projects/${projectId}/tasks/${taskId}/deliverables`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({
         title: 'unit-tests-v1.zip',
         description: 'First version of unit tests',
@@ -201,6 +210,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/tasks/${taskId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'approved' })
       .expect(200);
 
@@ -212,12 +222,14 @@ describe('Projects (e2e)', () => {
     const createRes = await request(app.getHttpServer())
       .post(`/projects/${projectId}/tasks`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({ title: 'RBAC test task' });
     const newTaskId = createRes.body.data.id;
 
     await request(app.getHttpServer())
       .patch(`/projects/${projectId}/tasks/${newTaskId}/status`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({ status: 'approved' })
       .expect(403);
   });
@@ -228,6 +240,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/projects/${projectId}/acceptance-score`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         score: 87,
         maxScore: 100,
@@ -246,6 +259,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'change' })
       .expect(200);
     expect(res.body.data.status).toBe('change');
@@ -255,6 +269,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'inspection' })
       .expect(200);
     expect(res.body.data.status).toBe('inspection');
@@ -264,6 +279,7 @@ describe('Projects (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/projects/${projectId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'change' })
       .expect(400);
   });
@@ -272,6 +288,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'final_acceptance' })
       .expect(200);
     expect(res.body.data.status).toBe('final_acceptance');
@@ -281,6 +298,7 @@ describe('Projects (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/projects/${projectId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'archive' })
       .expect(200);
     expect(res.body.data.status).toBe('archive');
@@ -290,6 +308,7 @@ describe('Projects (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/projects/${projectId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'initiation' })
       .expect(400);
   });

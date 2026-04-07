@@ -16,10 +16,12 @@ import { LearningModule } from './modules/learning/learning.module';
 import { RulesEngineModule } from './modules/rules-engine/rules-engine.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { UsersModule } from './modules/users/users.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { winstonConfig } from './config/winston.config';
 import { appConfig } from './config/app.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { ActionGuard } from './common/guards/action.guard';
 import { AnomalyThrottlerGuard } from './common/guards/anomaly-throttler.guard';
 import { NonceMiddleware } from './common/middleware/nonce.middleware';
 import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
@@ -49,12 +51,14 @@ import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
     RulesEngineModule,
     NotificationsModule,
     UsersModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
     { provide: APP_GUARD, useClass: AnomalyThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: ActionGuard },
   ],
 })
 export class AppModule {

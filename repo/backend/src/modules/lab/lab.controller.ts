@@ -6,6 +6,7 @@ import { LabService } from './lab.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { SampleStatus } from './lab-sample.entity';
@@ -25,6 +26,7 @@ export class LabController {
   // ── Test Dictionary ────────────────────────────────────────────────────
 
   @Post('tests')
+  @RequireAction('lab:create-test')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async createTest(@Body() dto: CreateTestDto, @CurrentUser() user: AuthUser) {
     const data = await this.service.createTest(dto, user.id);
@@ -38,6 +40,7 @@ export class LabController {
   }
 
   @Patch('tests/:id')
+  @RequireAction('lab:update-test')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async updateTest(
@@ -52,6 +55,7 @@ export class LabController {
   // ── Samples ─────────────────────────────────────────────────────────────
 
   @Post('samples')
+  @RequireAction('lab:create-sample')
   async createSample(@Body() dto: CreateSampleDto, @CurrentUser() user: AuthUser) {
     const data = await this.service.createSample(dto, user.id);
     return { data };
@@ -64,12 +68,13 @@ export class LabController {
   }
 
   @Get('samples/:id')
-  async getSample(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.service.getSample(id);
+  async getSample(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getSample(id, user);
     return { data };
   }
 
   @Patch('samples/:id/status')
+  @RequireAction('lab:advance-status')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async advanceSampleStatus(
@@ -84,6 +89,7 @@ export class LabController {
   // ── Results ─────────────────────────────────────────────────────────────
 
   @Post('samples/:id/results')
+  @RequireAction('lab:submit-results')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async submitResults(
     @Param('id', ParseUUIDPipe) sampleId: string,
@@ -97,6 +103,7 @@ export class LabController {
   // ── Reports ──────────────────────────────────────────────────────────────
 
   @Post('samples/:id/report')
+  @RequireAction('lab:create-report')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async createReport(
     @Param('id', ParseUUIDPipe) sampleId: string,
@@ -114,6 +121,7 @@ export class LabController {
   }
 
   @Patch('reports/:id')
+  @RequireAction('lab:edit-report')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async editReport(
@@ -132,6 +140,7 @@ export class LabController {
   }
 
   @Patch('reports/:id/archive')
+  @RequireAction('lab:archive-report')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async archiveReport(

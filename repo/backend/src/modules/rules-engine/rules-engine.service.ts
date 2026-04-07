@@ -269,6 +269,15 @@ export class RulesEngineService {
     const durationMs = completedAt.getTime() - startedAt.getTime();
     const completedWithinLimit = durationMs < MAX_ROLLBACK_MS;
 
+    // Enforce the 5-minute rollback constraint
+    if (!completedWithinLimit) {
+      throw new BadRequestException(
+        `Rollback exceeded 5-minute time limit (took ${Math.round(durationMs / 1000)}s). ` +
+        'Rollback transaction was committed but flagged as a violation. ' +
+        'Review and remediate manually.',
+      );
+    }
+
     // Record rollout record for the rollback
     await this.rolloutRepo.save(
       this.rolloutRepo.create({
@@ -304,6 +313,53 @@ export class RulesEngineService {
 
   isRollbackWithinTimeLimit(durationMs: number): boolean {
     return durationMs < MAX_ROLLBACK_MS;
+  }
+
+  /**
+   * Deterministic A/B assignment: given a userId and ruleId, determine whether
+   * this user falls into the active group based on rolloutPercentage.
+   * Uses a simple hash-based bucketing approach for consistency.
+   */
+  isUserInRolloutGroup(userId: string, ruleId: string, rolloutPercentage: number): boolean {
+    if (rolloutPercentage >= 100) return true;
+    if (rolloutPercentage <= 0) return false;
+    // Simple deterministic hash: sum of char codes mod 100
+    const combined = `${userId}:${ruleId}`;
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+      hash = ((hash << 5) - hash + combined.charCodeAt(i)) | 0;
+    }
+    const bucket = Math.abs(hash) % 100;
+    return bucket < rolloutPercentage;
+  }
+
+  /**
+   * Evaluate a rule for a specific user — respects A/B test configuration.
+   * Returns the active definition if the user is in the rollout group,
+   * or null if they're in the control group.
+   */
+  async evaluateRuleForUser(ruleId: string, userId: string): Promise<{
+    inGroup: boolean;
+    definition: Record<string, unknown> | null;
+    version: number;
+  }> {
+    const rule = await this.ruleRepo.findOne({ where: { id: ruleId }, relations: ['versions'] });
+    if (!rule) throw new NotFoundException('Rule not found');
+
+    const inGroup = rule.isAbTest
+      ? this.isUserInRolloutGroup(userId, ruleId, rule.rolloutPercentage)
+      : true;
+
+    if (!inGroup) {
+      return { inGroup: false, definition: null, version: rule.currentVersion };
+    }
+
+    const version = rule.versions.find((v) => v.versionNumber === rule.currentVersion);
+    return {
+      inGroup: true,
+      definition: version?.definition ?? null,
+      version: rule.currentVersion,
+    };
   }
 
   detectConflict(

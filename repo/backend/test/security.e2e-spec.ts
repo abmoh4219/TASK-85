@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { encrypt, decrypt } from '../src/common/transformers/aes.transformer';
+import { nh } from './helpers/nonce.helper';
 
 describe('Security (e2e)', () => {
   let app: INestApplication;
@@ -25,7 +26,7 @@ describe('Security (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.use(helmet());
     app.enableCors({
-      origin: 'http://localhost:3000',
+      origin: 'https://localhost:3000',
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Nonce', 'X-Timestamp'],
@@ -118,6 +119,7 @@ describe('Security (e2e)', () => {
       const createRes = await request(app.getHttpServer())
         .post('/lab/samples')
         .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
         .send({
           sampleType: 'Blood',
           collectionDate: new Date().toISOString(),
@@ -208,6 +210,7 @@ describe('Security (e2e)', () => {
       const createRes = await request(app.getHttpServer())
         .post('/lab/samples')
         .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
         .send({
           sampleType: 'Urine',
           collectionDate: new Date().toISOString(),
@@ -241,6 +244,7 @@ describe('Security (e2e)', () => {
       const createRes = await request(app.getHttpServer())
         .post('/lab/samples')
         .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
         .send({
           sampleType: 'Swab',
           collectionDate: new Date().toISOString(),
@@ -324,6 +328,7 @@ describe('Security (e2e)', () => {
       await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${supervisorToken}`)
+        .set(nh())
         .send({ username: 'ghost', password: 'x', role: 'employee' })
         .expect(403);
     });
@@ -378,6 +383,7 @@ describe('Security (e2e)', () => {
       const createRes = await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
         .send({ username: 'sec_todeactivate', password: 'meridian2024', role: 'employee' })
         .expect(201);
       const userId = createRes.body.data.id;
@@ -386,6 +392,7 @@ describe('Security (e2e)', () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/deactivate`)
         .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
         .expect(200);
 
       // User should still be in DB with is_active=false
@@ -403,6 +410,7 @@ describe('Security (e2e)', () => {
       const createRes = await request(app.getHttpServer())
         .post('/lab/samples')
         .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
         .send({
           sampleType: 'Blood',
           collectionDate: new Date().toISOString(),
@@ -458,9 +466,9 @@ describe('Security (e2e)', () => {
     it('OPTIONS preflight from allowed origin includes CORS headers', async () => {
       const res = await request(app.getHttpServer())
         .options('/auth/login')
-        .set('Origin', 'http://localhost:3000')
+        .set('Origin', 'https://localhost:3000')
         .set('Access-Control-Request-Method', 'POST');
-      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+      expect(res.headers['access-control-allow-origin']).toBe('https://localhost:3000');
     });
 
     it('OPTIONS preflight from disallowed origin does not include CORS allow header', async () => {
@@ -469,6 +477,144 @@ describe('Security (e2e)', () => {
         .set('Origin', 'http://evil.example.com')
         .set('Access-Control-Request-Method', 'POST');
       expect(res.headers['access-control-allow-origin']).not.toBe('http://evil.example.com');
+    });
+  });
+
+  // ── Action-level RBAC ──────────────────────────────────────────────────
+
+  describe('Action-level RBAC guard', () => {
+    it('allowed action succeeds (admin can manage users)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/admin/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ username: 'action_test_user', password: 'meridian2024', role: 'employee' });
+      expect(res.status).toBe(201);
+      // Cleanup
+      if (res.body.data?.id) {
+        await dataSource.query(`DELETE FROM users WHERE id = $1`, [res.body.data.id]);
+      }
+    });
+
+    it('disallowed action denied (employee cannot create rules)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/rules')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({ name: 'test-rule', definition: {} });
+      expect(res.status).toBe(403);
+    });
+  });
+
+  // ── Nonce enforcement on sensitive writes ──────────────────────────────
+
+  describe('Nonce enforcement on non-auth write endpoints', () => {
+    it('rejects POST without nonce headers on sensitive endpoint', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/lab/samples')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .send({
+          sampleType: 'Blood',
+          collectionDate: new Date().toISOString(),
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/nonce/i);
+    });
+
+    it('accepts POST with valid nonce headers', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/lab/samples')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({
+          sampleType: 'Blood',
+          collectionDate: new Date().toISOString(),
+        });
+      expect(res.status).toBe(201);
+      if (res.body.data?.id) {
+        await dataSource.query(`DELETE FROM lab_samples WHERE id = $1`, [res.body.data.id]);
+      }
+    });
+  });
+
+  // ── Object-level authorization ─────────────────────────────────────────
+
+  describe('Object-level authorization', () => {
+    it('employee cannot access another user sample', async () => {
+      // Create a sample as admin (not the employee)
+      const createRes = await request(app.getHttpServer())
+        .post('/lab/samples')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({
+          sampleType: 'Blood',
+          collectionDate: new Date().toISOString(),
+          patientIdentifier: 'OBJ-AUTH-TEST-1234',
+        });
+      expect(createRes.status).toBe(201);
+      const sampleId = createRes.body.data.id;
+
+      // Employee tries to access the admin's sample
+      const getRes = await request(app.getHttpServer())
+        .get(`/lab/samples/${sampleId}`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+      expect(getRes.status).toBe(403);
+
+      await dataSource.query(`DELETE FROM lab_samples WHERE id = $1`, [sampleId]);
+    });
+
+    it('employee can access their own sample', async () => {
+      const createRes = await request(app.getHttpServer())
+        .post('/lab/samples')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({
+          sampleType: 'Blood',
+          collectionDate: new Date().toISOString(),
+        });
+      expect(createRes.status).toBe(201);
+      const sampleId = createRes.body.data.id;
+
+      const getRes = await request(app.getHttpServer())
+        .get(`/lab/samples/${sampleId}`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+      expect(getRes.status).toBe(200);
+
+      await dataSource.query(`DELETE FROM lab_samples WHERE id = $1`, [sampleId]);
+    });
+  });
+
+  // ── A/B rule evaluation ────────────────────────────────────────────────
+
+  describe('Rules-engine A/B evaluation', () => {
+    it('deterministic A/B assignment is consistent', async () => {
+      // Create a rule with A/B test at 50%
+      const createRes = await request(app.getHttpServer())
+        .post('/rules')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({
+          name: 'ab-test-rule-sec',
+          definition: { threshold: 42 },
+          isAbTest: true,
+          rolloutPercentage: 50,
+        });
+      expect(createRes.status).toBe(201);
+      const ruleId = createRes.body.data.id;
+
+      // Evaluate twice — should be deterministic (same result)
+      const eval1 = await request(app.getHttpServer())
+        .get(`/rules/${ruleId}/evaluate`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      const eval2 = await request(app.getHttpServer())
+        .get(`/rules/${ruleId}/evaluate`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(eval1.body.data.inGroup).toBe(eval2.body.data.inGroup);
+
+      // Cleanup
+      await dataSource.query(`DELETE FROM rule_versions WHERE rule_id = $1`, [ruleId]);
+      await dataSource.query(`DELETE FROM business_rules WHERE id = $1`, [ruleId]);
     });
   });
 });

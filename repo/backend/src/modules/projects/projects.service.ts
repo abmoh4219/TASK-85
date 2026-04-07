@@ -77,12 +77,20 @@ export class ProjectsService {
     return this.projectRepo.find({ order: { createdAt: 'DESC' } });
   }
 
-  async getProject(id: string): Promise<Project> {
+  async getProject(id: string, user?: { id: string; role: UserRole }): Promise<Project> {
     const project = await this.projectRepo.findOne({
       where: { id },
       relations: ['tasks', 'tasks.deliverables', 'milestones'],
     });
     if (!project) throw new NotFoundException('Project not found');
+    // Object-level authorization: employees can only see projects they own or are assigned to
+    if (user && user.role === UserRole.EMPLOYEE) {
+      const isOwner = project.ownerId === user.id;
+      const isAssigned = project.tasks?.some((t) => t.assignedToId === user.id);
+      if (!isOwner && !isAssigned) {
+        throw new ForbiddenException('You do not have access to this project');
+      }
+    }
     return project;
   }
 

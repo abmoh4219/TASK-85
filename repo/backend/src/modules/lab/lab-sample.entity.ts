@@ -35,7 +35,7 @@ export class LabSample {
   @Column({ type: 'enum', enum: SampleStatus, default: SampleStatus.SUBMITTED })
   status: SampleStatus;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @OneToMany(() => LabResult, (r) => r.sample, { cascade: true })

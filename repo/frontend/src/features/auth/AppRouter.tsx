@@ -20,6 +20,8 @@ import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage';
 import { LearningPage } from '@/features/learning/LearningPage';
 import { LearningPlanDetailPage } from '@/features/learning/LearningPlanDetailPage';
 import { RulesEnginePage } from '@/features/rules-engine/RulesEnginePage';
+import { RuleDetailPage } from '@/features/rules-engine/RuleDetailPage';
+import { RequestDetailPage } from '@/features/procurement/RequestDetailPage';
 import { UsersPage } from '@/features/admin/UsersPage';
 import { SettingsPage } from '@/features/admin/SettingsPage';
 import { PageLoader } from '@/components/shared/LoadingSpinner';
@@ -112,6 +114,7 @@ export function AppRouter() {
           <Route path="/procurement/rfq/:id" element={wrap(<RFQDetailWrapper />)} />
           <Route path="/procurement/orders" element={wrap(<OrdersPage />)} />
           <Route path="/procurement/orders/:id" element={wrap(<OrderDetailPage />)} />
+          <Route path="/procurement/requests/:id" element={wrap(<RequestDetailPage />)} />
           <Route path="/inventory" element={wrap(<InventoryPage />)} />
           <Route path="/inventory/:id" element={wrap(<ItemDetailPage />)} />
         </Route>
@@ -122,6 +125,7 @@ export function AppRouter() {
         <Route element={<AppLayout />}>
           <Route path="/procurement" element={wrap(<ProcurementPage />)} />
           <Route path="/procurement/new" element={wrap(<CreateRequestPage />)} />
+          <Route path="/procurement/requests/:id" element={wrap(<RequestDetailPage />)} />
         </Route>
       </Route>
 
@@ -129,6 +133,7 @@ export function AppRouter() {
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route element={<AppLayout />}>
           <Route path="/rules-engine" element={wrap(<RulesEnginePage />)} />
+          <Route path="/rules-engine/:id" element={wrap(<RuleDetailPage />)} />
           <Route path="/admin/users" element={wrap(<UsersPage />)} />
           <Route path="/admin/settings" element={wrap(<SettingsPage />)} />
         </Route>

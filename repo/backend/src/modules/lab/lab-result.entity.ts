@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { LabSample } from './lab-sample.entity';
 import { LabTestDictionary } from './lab-test-dictionary.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('lab_results')
 export class LabResult {
@@ -27,7 +28,7 @@ export class LabResult {
   @Column({ name: 'numeric_value', type: 'decimal', precision: 14, scale: 6, nullable: true })
   numericValue: number | null;
 
-  @Column({ name: 'text_value', type: 'text', nullable: true })
+  @Column({ name: 'text_value', type: 'text', nullable: true, transformer: aesTransformer })
   textValue: string | null;
 
   @Column({ name: 'is_abnormal', default: false })

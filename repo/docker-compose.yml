@@ -39,7 +39,7 @@ services:
       ENCRYPTION_KEY: meridianmed_aes256_key_32chars_here
       THROTTLE_TTL: 60
       THROTTLE_LIMIT: 10
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: https://localhost:3000
     ports:
       - "4000:4000"
     depends_on:
@@ -56,11 +56,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:4000
+        VITE_API_URL: /api
     container_name: meridianmed-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "3000:443"
+      - "3080:80"
     depends_on:
       - backend
 

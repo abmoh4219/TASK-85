@@ -6,6 +6,7 @@ import { LearningService } from './learning.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { LearningPlanStatus } from './learning-plan.entity';
@@ -21,6 +22,7 @@ export class LearningController {
   constructor(private readonly service: LearningService) {}
 
   @Post('plans')
+  @RequireAction('learning:create-plan')
   @Roles(UserRole.ADMIN, UserRole.HR)
   async createPlan(@Body() dto: CreatePlanDto, @CurrentUser() user: AuthUser) {
     const data = await this.service.createPlan(dto, user.id);
@@ -34,12 +36,13 @@ export class LearningController {
   }
 
   @Get('plans/:id')
-  async getPlan(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.service.getPlan(id);
+  async getPlan(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getPlan(id, user);
     return { data };
   }
 
   @Patch('plans/:id/status')
+  @RequireAction('learning:advance-plan')
   @Roles(UserRole.ADMIN, UserRole.HR)
   @HttpCode(HttpStatus.OK)
   async advancePlanStatus(
@@ -59,6 +62,7 @@ export class LearningController {
   }
 
   @Post('plans/:id/goals')
+  @RequireAction('learning:create-goal')
   @Roles(UserRole.ADMIN, UserRole.HR)
   async createGoal(
     @Param('id', ParseUUIDPipe) planId: string,
@@ -76,6 +80,7 @@ export class LearningController {
   }
 
   @Post('goals/:id/sessions')
+  @RequireAction('learning:log-session')
   async logStudySession(
     @Param('id', ParseUUIDPipe) goalId: string,
     @Body() dto: LogSessionDto,

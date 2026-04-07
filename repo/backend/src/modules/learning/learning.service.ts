@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException, BadRequestException,
+  Injectable, NotFoundException, BadRequestException, ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
@@ -70,12 +70,16 @@ export class LearningService {
     return this.planRepo.find({ where, relations: ['goals'], order: { createdAt: 'DESC' } });
   }
 
-  async getPlan(id: string): Promise<LearningPlan> {
+  async getPlan(id: string, user?: { id: string; role: UserRole }): Promise<LearningPlan> {
     const plan = await this.planRepo.findOne({
       where: { id },
       relations: ['goals', 'goals.studySessions'],
     });
     if (!plan) throw new NotFoundException('Learning plan not found');
+    // Object-level authorization: employees can only see their own plans
+    if (user && user.role === UserRole.EMPLOYEE && plan.userId !== user.id) {
+      throw new ForbiddenException('You do not have access to this learning plan');
+    }
     return plan;
   }
 

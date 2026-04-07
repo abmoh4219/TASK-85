@@ -8,6 +8,7 @@ import { ProcurementService } from './procurement.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { CreatePurchaseRequestDto } from './dto/create-purchase-request.dto';
@@ -29,6 +30,7 @@ export class ProcurementController {
   // ── Purchase Requests ────────────────────────────────────────────────
 
   @Post('requests')
+  @RequireAction('procurement:create-request')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async createRequest(
     @Body() dto: CreatePurchaseRequestDto,
@@ -52,11 +54,12 @@ export class ProcurementController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request,
   ) {
-    const data = await this.service.submitRequest(id, user.id, req.ip);
+    const data = await this.service.submitRequest(id, user.id, user.role, req.ip);
     return { data };
   }
 
   @Patch('requests/:id/approve')
+  @RequireAction('procurement:approve-request')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async approveRequest(
@@ -69,6 +72,7 @@ export class ProcurementController {
   }
 
   @Patch('requests/:id/reject')
+  @RequireAction('procurement:reject-request')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async rejectRequest(
@@ -81,6 +85,7 @@ export class ProcurementController {
   }
 
   @Post('requests/:id/substitute')
+  @RequireAction('procurement:substitute')
   @Roles(UserRole.ADMIN)
   async approveSubstitute(
     @Param('id', ParseUUIDPipe) id: string,
@@ -95,6 +100,7 @@ export class ProcurementController {
   // ── RFQ ──────────────────────────────────────────────────────────────
 
   @Post('rfq')
+  @RequireAction('procurement:create-rfq')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async createRFQ(
@@ -128,6 +134,7 @@ export class ProcurementController {
   // ── Purchase Orders ──────────────────────────────────────────────────
 
   @Post('orders')
+  @RequireAction('procurement:create-po')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async createPO(
@@ -154,6 +161,7 @@ export class ProcurementController {
   }
 
   @Patch('orders/:id/approve')
+  @RequireAction('procurement:approve-po')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async approvePO(
@@ -166,6 +174,7 @@ export class ProcurementController {
   }
 
   @Patch('orders/:poId/lines/:lineId/price')
+  @RequireAction('procurement:update-price')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   async updateLinePrice(
@@ -182,6 +191,7 @@ export class ProcurementController {
   // ── Receiving & Inspection ───────────────────────────────────────────
 
   @Post('orders/:id/receipts')
+  @RequireAction('procurement:receive')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async receiveOrder(
     @Param('id', ParseUUIDPipe) poId: string,
@@ -194,6 +204,7 @@ export class ProcurementController {
   }
 
   @Patch('receipts/:id/inspect')
+  @RequireAction('procurement:inspect')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async inspectReceipt(
@@ -207,6 +218,7 @@ export class ProcurementController {
   }
 
   @Post('receipts/:id/putaway')
+  @RequireAction('procurement:putaway')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async putAway(
     @Param('id', ParseUUIDPipe) receiptId: string,
@@ -221,6 +233,7 @@ export class ProcurementController {
   // ── Reconciliation ─��─────────────────────────────────────────────────
 
   @Post('orders/:id/reconcile')
+  @RequireAction('procurement:reconcile')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async reconcile(
     @Param('id', ParseUUIDPipe) poId: string,

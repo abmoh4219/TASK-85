@@ -6,6 +6,7 @@ import { ProjectsService } from './projects.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { ProjectStatus } from './project.entity';
@@ -26,6 +27,7 @@ export class ProjectsController {
   // ── Projects ───────────────────────────────────────────────────────��──────
 
   @Post()
+  @RequireAction('projects:create')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async createProject(@Body() dto: CreateProjectDto, @CurrentUser() user: AuthUser) {
     const data = await this.service.createProject(dto, user.id);
@@ -39,12 +41,13 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  async getProject(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.service.getProject(id);
+  async getProject(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getProject(id, user);
     return { data };
   }
 
   @Patch(':id/status')
+  @RequireAction('projects:advance-status')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async advanceStatus(
@@ -59,6 +62,7 @@ export class ProjectsController {
   // ── Tasks ─────────────────────────────────────────────────────────────────
 
   @Post(':id/tasks')
+  @RequireAction('projects:create-task')
   async createTask(
     @Param('id', ParseUUIDPipe) projectId: string,
     @Body() dto: CreateTaskDto,
@@ -75,6 +79,7 @@ export class ProjectsController {
   }
 
   @Patch(':id/tasks/:taskId/status')
+  @RequireAction('projects:advance-task')
   @HttpCode(HttpStatus.OK)
   async advanceTaskStatus(
     @Param('id', ParseUUIDPipe) projectId: string,
@@ -89,6 +94,7 @@ export class ProjectsController {
   // ── Milestones ──────────────────────���─────────────────────────────────────
 
   @Post(':id/milestones')
+  @RequireAction('projects:create-milestone')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async createMilestone(
     @Param('id', ParseUUIDPipe) projectId: string,
@@ -106,6 +112,7 @@ export class ProjectsController {
   }
 
   @Patch(':id/milestones/:milestoneId')
+  @RequireAction('projects:update-milestone')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async updateMilestone(
@@ -121,6 +128,7 @@ export class ProjectsController {
   // ── Deliverables ──────────────────────────────────────────────────���───────
 
   @Post(':id/tasks/:taskId/deliverables')
+  @RequireAction('projects:submit-deliverable')
   async submitDeliverable(
     @Param('id', ParseUUIDPipe) projectId: string,
     @Param('taskId', ParseUUIDPipe) taskId: string,
@@ -134,6 +142,7 @@ export class ProjectsController {
   // ── Acceptance Scoring ─���─────────────────────────��────────────────────────
 
   @Post(':id/acceptance-score')
+  @RequireAction('projects:score-acceptance')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async scoreAcceptance(
     @Param('id', ParseUUIDPipe) projectId: string,

@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { nh } from './helpers/nonce.helper';
 
 /**
  * Learning Plans & Rules Engine e2e tests (real PostgreSQL)
@@ -96,6 +97,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/learning/plans')
       .set('Authorization', `Bearer ${hrToken}`)
+      .set(nh())
       .send({
         title: 'NestJS Mastery Plan',
         userId: employeeUserId,
@@ -112,6 +114,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     await request(app.getHttpServer())
       .post('/learning/plans')
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({ title: 'Self-made plan', userId: employeeUserId })
       .expect(403);
   });
@@ -120,6 +123,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/learning/plans/${planId}/goals`)
       .set('Authorization', `Bearer ${hrToken}`)
+      .set(nh())
       .send({
         title: 'Learn TypeScript decorators',
         priority: 'high',
@@ -138,6 +142,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/learning/plans/${planId}/status`)
       .set('Authorization', `Bearer ${hrToken}`)
+      .set(nh())
       .send({ status: 'active', reason: 'Employee is ready to start' })
       .expect(200);
 
@@ -148,6 +153,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/learning/plans/${planId}/status`)
       .set('Authorization', `Bearer ${hrToken}`)
+      .set(nh())
       .send({ status: 'archived' })
       .expect(400);
   });
@@ -156,6 +162,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/learning/goals/${goalId}/sessions`)
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({ durationMinutes: 60, notes: 'Studied decorator patterns', sessionDate: new Date().toISOString() })
       .expect(201);
 
@@ -191,12 +198,14 @@ describe('Learning & Rules Engine (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/learning/plans/${planId}/status`)
       .set('Authorization', `Bearer ${hrToken}`)
+      .set(nh())
       .send({ status: 'paused', reason: 'On leave' })
       .expect(200);
 
     const res = await request(app.getHttpServer())
       .patch(`/learning/plans/${planId}/status`)
       .set('Authorization', `Bearer ${hrToken}`)
+      .set(nh())
       .send({ status: 'active', reason: 'Resumed after leave' })
       .expect(200);
 
@@ -209,6 +218,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/rules')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         name: `${TEST_PREFIX}Max PO Value`,
         category: 'procurement_threshold',
@@ -227,11 +237,13 @@ describe('Learning & Rules Engine (e2e)', () => {
     // First activate the rule so it appears as "active" in conflict check
     await request(app.getHttpServer())
       .patch(`/rules/${ruleId}/activate`)
-      .set('Authorization', `Bearer ${adminToken}`);
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh());
 
     const res = await request(app.getHttpServer())
       .post('/rules/validate')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         name: `${TEST_PREFIX}Max PO Value`,
         category: 'pricing',
@@ -256,6 +268,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/rules/${ruleId}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         definition: { threshold: 10000, currency: 'USD' },
         changeSummary: 'Increased PO limit to $10k',
@@ -271,6 +284,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/rules/${ruleId}/rollout`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ rolloutPercentage: 25 })
       .expect(200);
 
@@ -282,6 +296,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/rules/${ruleId}/activate`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(200);
 
     expect(res.body.data.rule.status).toBe('active');
@@ -292,6 +307,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/rules/${ruleId}/rollback`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(201);
 
     expect(res.body.data.restoredVersion).toBe(1);
@@ -305,6 +321,7 @@ describe('Learning & Rules Engine (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/rules/${ruleId}/rollback`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(400);
   });
 

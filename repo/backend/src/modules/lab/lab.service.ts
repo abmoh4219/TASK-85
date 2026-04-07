@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException, BadRequestException,
+  Injectable, NotFoundException, BadRequestException, ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -133,12 +133,16 @@ export class LabService {
     return this.maskSamples(samples);
   }
 
-  async getSample(id: string): Promise<LabSample> {
+  async getSample(id: string, user?: { id: string; role: UserRole }): Promise<LabSample> {
     const sample = await this.sampleRepo.findOne({
       where: { id },
       relations: ['results', 'results.test'],
     });
     if (!sample) throw new NotFoundException('Sample not found');
+    // Object-level authorization: employees can only see their own samples
+    if (user && user.role === UserRole.EMPLOYEE && sample.submittedById !== user.id) {
+      throw new ForbiddenException('You do not have access to this sample');
+    }
     return this.maskSample(sample);
   }
 

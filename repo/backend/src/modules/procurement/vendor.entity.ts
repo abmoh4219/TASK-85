@@ -2,6 +2,7 @@ import {
   Entity, PrimaryGeneratedColumn, Column,
   CreateDateColumn, UpdateDateColumn, DeleteDateColumn,
 } from 'typeorm';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('vendors')
 export class Vendor {
@@ -11,13 +12,13 @@ export class Vendor {
   @Column({ length: 200 })
   name: string;
 
-  @Column({ name: 'contact_name', type: 'varchar', length: 200, nullable: true })
+  @Column({ name: 'contact_name', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   contactName: string | null;
 
-  @Column({ type: 'varchar', length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   email: string | null;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   phone: string | null;
 
   @Column({ type: 'text', nullable: true })

@@ -99,9 +99,9 @@ export class ProcurementService {
     });
   }
 
-  async submitRequest(id: string, userId: string, ip?: string) {
+  async submitRequest(id: string, userId: string, userRole?: UserRole, ip?: string) {
     const pr = await this.findPROrFail(id);
-    this.assertOwnerOrAdmin(pr.requesterId, userId);
+    this.assertOwnerOrAdmin(pr.requesterId, userId, userRole);
     if (pr.status !== PurchaseRequestStatus.DRAFT) {
       throw new BadRequestException('Only DRAFT requests can be submitted');
     }
@@ -577,8 +577,11 @@ export class ProcurementService {
     return po;
   }
 
-  private assertOwnerOrAdmin(ownerId: string, userId: string) {
-    // Service-layer RBAC: caller must be owner (enforced here AND in controller via guard)
-    // Admin bypass is handled at controller level via @Roles()
+  private assertOwnerOrAdmin(ownerId: string, userId: string, userRole?: UserRole) {
+    // Admin/supervisor bypass
+    if (userRole && [UserRole.ADMIN, UserRole.SUPERVISOR].includes(userRole)) return;
+    if (ownerId !== userId) {
+      throw new ForbiddenException('You do not have access to this resource');
+    }
   }
 }

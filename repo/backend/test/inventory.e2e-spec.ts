@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { nh } from './helpers/nonce.helper';
 
 /**
  * Inventory & Smart Alerts e2e tests (real PostgreSQL)
@@ -158,6 +159,7 @@ describe('Inventory (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/inventory/alerts/run-checks')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(200);
 
     expect(res.body.data.triggered).toBe(true);
@@ -241,6 +243,7 @@ describe('Inventory (e2e)', () => {
     const ackRes = await request(app.getHttpServer())
       .patch(`/inventory/alerts/${alertToAck.id}/acknowledge`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(200);
 
     expect(ackRes.body.data.status).toBe('acknowledged');
@@ -253,6 +256,7 @@ describe('Inventory (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/inventory/recommendations/generate')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ itemId: itemConsumptionId })
       .expect(201);
 
@@ -275,6 +279,7 @@ describe('Inventory (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/inventory/recommendations/${recoId}/impression`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(200);
 
     expect(res.body.data.recorded).toBe(true);
@@ -293,6 +298,7 @@ describe('Inventory (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/inventory/recommendations/${recoId}/accept`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(201);
 
     expect(res.body.data.recommendation.status).toBe('accepted');

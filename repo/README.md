@@ -4,8 +4,8 @@
 ```bash
 docker compose up --build
 ```
-Frontend: http://localhost:3000
-Backend API: http://localhost:4000
+Frontend: https://localhost:3000 (self-signed cert — accept browser warning)
+Backend API: https://localhost:3000/api (proxied through nginx)
 
 ## Test
 ```bash

@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { nh } from './helpers/nonce.helper';
 
 /**
  * Lab Operations e2e tests (real PostgreSQL)
@@ -84,6 +85,7 @@ describe('Lab (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/lab/tests')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         name: 'E2E Blood Glucose',
         testCode: `${TEST_PREFIX}GLU`,
@@ -120,6 +122,7 @@ describe('Lab (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/lab/samples')
       .set('Authorization', `Bearer ${employeeToken}`)
+      .set(nh())
       .send({
         sampleType: 'blood',
         collectionDate: new Date().toISOString(),
@@ -151,6 +154,7 @@ describe('Lab (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/lab/samples/${sampleId}/results`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         results: [
           { testId, numericValue: 2.0, notes: 'Below normal range' }, // < criticalLow 2.5
@@ -181,6 +185,7 @@ describe('Lab (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/lab/samples/${sampleId}/report`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ summary: 'Critical glucose level detected — immediate attention required' })
       .expect(201);
 
@@ -202,6 +207,7 @@ describe('Lab (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/lab/reports/${reportId}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         summary: 'Critical glucose level — patient admitted for further testing',
         changeReason: 'Updated after physician review',
@@ -233,6 +239,7 @@ describe('Lab (e2e)', () => {
     const res = await request(app.getHttpServer())
       .patch(`/lab/reports/${reportId}/archive`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .expect(200);
 
     expect(res.body.data.status).toBe('archived');
@@ -250,6 +257,7 @@ describe('Lab (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/lab/reports/${reportId}`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ summary: 'Attempt to edit archived report' })
       .expect(400);
   });
@@ -260,6 +268,7 @@ describe('Lab (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/lab/samples/${sampleId}/status`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ status: 'reported' })
       .expect(400);
   });
@@ -271,12 +280,14 @@ describe('Lab (e2e)', () => {
     const sampleRes = await request(app.getHttpServer())
       .post('/lab/samples')
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({ sampleType: 'blood', collectionDate: new Date().toISOString() });
     const normalSampleId = sampleRes.body.data.id;
 
     const res = await request(app.getHttpServer())
       .post(`/lab/samples/${normalSampleId}/results`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .set(nh())
       .send({
         results: [
           { testId, numericValue: 5.0 }, // within range 3.9–6.1

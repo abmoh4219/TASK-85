@@ -2,8 +2,10 @@ import {
   Controller, Get, Post, Patch, Param, Body, HttpCode, HttpStatus, ParseUUIDPipe,
 } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { UserRole } from './user.entity';
-import { UsersService, CreateUserDto, UpdateUserDto } from './users.service';
+import { UsersService } from './users.service';
+import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 
 @Controller('admin/users')
 @Roles(UserRole.ADMIN)
@@ -19,6 +21,7 @@ export class UsersController {
   }
 
   @Post()
+  @RequireAction('admin:manage-users')
   async create(@Body() dto: CreateUserDto) {
     const user = await this.svc.create(dto);
     const { passwordHash: _ph, ...data } = user;
@@ -26,6 +29,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @RequireAction('admin:manage-users')
   @HttpCode(HttpStatus.OK)
   async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
     const user = await this.svc.update(id, dto);
@@ -34,6 +38,7 @@ export class UsersController {
   }
 
   @Patch(':id/deactivate')
+  @RequireAction('admin:manage-users')
   @HttpCode(HttpStatus.OK)
   async deactivate(@Param('id', ParseUUIDPipe) id: string) {
     const user = await this.svc.deactivate(id);
