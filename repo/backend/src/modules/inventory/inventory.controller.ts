@@ -7,6 +7,7 @@ import { AlertsService } from './alerts.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { AlertStatus } from './alert.entity';
@@ -45,6 +46,7 @@ export class InventoryController {
   }
 
   @Patch('alerts/:id/acknowledge')
+  @RequireAction('inventory:acknowledge-alert')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   async acknowledgeAlert(
@@ -56,6 +58,7 @@ export class InventoryController {
   }
 
   @Post('alerts/run-checks')
+  @RequireAction('inventory:run-checks')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   async runAlertChecks() {
@@ -73,6 +76,7 @@ export class InventoryController {
   }
 
   @Post('recommendations/generate')
+  @RequireAction('inventory:generate-recs')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async generateRecommendations(@Body() dto: GenerateRecommendationsDto) {
     const data = await this.service.generateRecommendations(dto);
@@ -80,6 +84,7 @@ export class InventoryController {
   }
 
   @Post('recommendations/:id/accept')
+  @RequireAction('inventory:accept-rec')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async acceptRecommendation(
     @Param('id', ParseUUIDPipe) id: string,

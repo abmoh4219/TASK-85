@@ -22,7 +22,14 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget openssl && \
+    mkdir -p /app/certs && \
+    openssl req -x509 -nodes -days 365 \
+      -newkey rsa:2048 \
+      -keyout /app/certs/selfsigned.key \
+      -out /app/certs/selfsigned.crt \
+      -subj "/C=US/ST=Local/L=Local/O=MeridianMed/CN=backend" && \
+    apk del openssl
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist

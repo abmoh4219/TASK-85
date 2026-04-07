@@ -148,9 +148,9 @@ describe('Inventory (e2e)', () => {
       .expect(200);
 
     expect(res.body.data).toBeInstanceOf(Array);
-    const safetyItem = res.body.data.find((i: { id: string }) => i.id === itemSafetyId);
+    const safetyItem = res.body.data.find((i: { itemId: string }) => i.itemId === itemSafetyId);
     expect(safetyItem).toBeDefined();
-    expect(safetyItem.stockLevel.quantityOnHand).toBeDefined();
+    expect(safetyItem.currentStock).toBeDefined();
   });
 
   // ── Step 2: Trigger alert checks manually ─────────────────────────────────

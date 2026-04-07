@@ -8,11 +8,11 @@ import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 
 @Controller('admin/users')
-@Roles(UserRole.ADMIN)
 export class UsersController {
   constructor(private readonly svc: UsersService) {}
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.HR)
   async getAll() {
     const users = await this.svc.getAll();
     // never return passwordHash
@@ -21,6 +21,7 @@ export class UsersController {
   }
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @RequireAction('admin:manage-users')
   async create(@Body() dto: CreateUserDto) {
     const user = await this.svc.create(dto);
@@ -29,6 +30,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   @RequireAction('admin:manage-users')
   @HttpCode(HttpStatus.OK)
   async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
@@ -38,6 +40,7 @@ export class UsersController {
   }
 
   @Patch(':id/deactivate')
+  @Roles(UserRole.ADMIN)
   @RequireAction('admin:manage-users')
   @HttpCode(HttpStatus.OK)
   async deactivate(@Param('id', ParseUUIDPipe) id: string) {

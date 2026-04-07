@@ -8,6 +8,7 @@ import { PurchaseRequestItem } from './purchase-request-item.entity';
 import { RFQ, RFQStatus } from './rfq.entity';
 import { RFQLine } from './rfq-line.entity';
 import { VendorQuote } from './vendor-quote.entity';
+import { Vendor } from './vendor.entity';
 import { PurchaseOrder, POStatus } from './purchase-order.entity';
 import { POLine } from './po-line.entity';
 import { POReceipt, ReceiptStatus } from './po-receipt.entity';
@@ -45,6 +46,7 @@ export class ProcurementService {
     @InjectRepository(PutAway) private readonly putAwayRepo: Repository<PutAway>,
     @InjectRepository(Reconciliation) private readonly reconciliationRepo: Repository<Reconciliation>,
     @InjectRepository(InventoryLevel) private readonly inventoryRepo: Repository<InventoryLevel>,
+    @InjectRepository(Vendor) private readonly vendorRepo: Repository<Vendor>,
     @InjectRepository(StockMovement) private readonly movementRepo: Repository<StockMovement>,
     private readonly auditLog: AuditLogService,
     private readonly dataSource: DataSource,
@@ -235,22 +237,33 @@ export class ProcurementService {
     });
     if (!rfq) throw new NotFoundException('RFQ not found');
 
-    return {
-      rfq,
-      lines: rfq.lines.map((line) => ({
-        item: line.item,
-        quantity: line.quantity,
+    const lines = rfq.lines.map((line) => {
+      const quotes = line.vendorQuotes.map((q) => ({
+        vendorId: q.vendorId,
+        vendorName: q.vendor?.name ?? 'Unknown Vendor',
+        unitPrice: Number(q.unitPrice),
+        totalPrice: Number(q.unitPrice) * Number(line.quantity),
+        leadTimeDays: q.leadTimeDays,
+        validUntil: q.validUntil,
+        isSelected: q.isSelected,
+        isLowest: false,
+      }));
+      // Mark lowest-price quote
+      if (quotes.length > 0) {
+        const minPrice = Math.min(...quotes.map((q) => q.unitPrice));
+        quotes.forEach((q) => { q.isLowest = q.unitPrice === minPrice; });
+      }
+      return {
+        lineId: line.id,
+        itemId: line.itemId,
+        itemName: line.item?.name ?? 'Unknown Item',
+        quantity: Number(line.quantity),
         unitOfMeasure: line.unitOfMeasure,
-        quotes: line.vendorQuotes.map((q) => ({
-          vendor: q.vendor,
-          unitPrice: Number(q.unitPrice),
-          totalPrice: Number(q.unitPrice) * Number(line.quantity),
-          leadTimeDays: q.leadTimeDays,
-          validUntil: q.validUntil,
-          isSelected: q.isSelected,
-        })),
-      })),
-    };
+        quotes,
+      };
+    });
+
+    return { rfqId: rfq.id, rfq, lines };
   }
 
   // ── Purchase Orders ─────────────────────────────────────────────────────
@@ -557,10 +570,18 @@ export class ProcurementService {
     return this.poRepo.find({ relations: ['lines'], order: { createdAt: 'DESC' } });
   }
 
+  async getRFQs() {
+    return this.rfqRepo.find({ relations: ['lines'], order: { createdAt: 'DESC' } });
+  }
+
   async getRFQ(id: string) {
     const rfq = await this.rfqRepo.findOne({ where: { id }, relations: ['lines'] });
     if (!rfq) throw new NotFoundException('RFQ not found');
     return rfq;
+  }
+
+  async getVendors() {
+    return this.vendorRepo.find({ where: { isActive: true }, order: { name: 'ASC' } });
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { PurchaseRequestItem } from '../purchase-request-item.entity';
 import { RFQ } from '../rfq.entity';
 import { RFQLine } from '../rfq-line.entity';
 import { VendorQuote } from '../vendor-quote.entity';
+import { Vendor } from '../vendor.entity';
 import { PurchaseOrder, POStatus } from '../purchase-order.entity';
 import { POLine } from '../po-line.entity';
 import { POReceipt } from '../po-receipt.entity';
@@ -45,6 +46,7 @@ describe('ProcurementService — price lock', () => {
         { provide: getRepositoryToken(RFQ), useValue: mockRepo() },
         { provide: getRepositoryToken(RFQLine), useValue: mockRepo() },
         { provide: getRepositoryToken(VendorQuote), useValue: mockRepo() },
+        { provide: getRepositoryToken(Vendor), useValue: mockRepo() },
         { provide: getRepositoryToken(PurchaseOrder), useValue: poRepo },
         { provide: getRepositoryToken(POLine), useValue: poLineRepo },
         { provide: getRepositoryToken(POReceipt), useValue: mockRepo() },

@@ -73,8 +73,8 @@ export class ProjectsController {
   }
 
   @Get(':id/tasks')
-  async getTasks(@Param('id', ParseUUIDPipe) projectId: string) {
-    const data = await this.service.getTasks(projectId);
+  async getTasks(@Param('id', ParseUUIDPipe) projectId: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getTasks(projectId, user);
     return { data };
   }
 

@@ -99,6 +99,20 @@ export class ProcurementController {
 
   // ── RFQ ──────────────────────────────────────────────────────────────
 
+  @Get('rfq')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  async getRFQs() {
+    const data = await this.service.getRFQs();
+    return { data };
+  }
+
+  @Get('vendors')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  async getVendors() {
+    const data = await this.service.getVendors();
+    return { data };
+  }
+
   @Post('rfq')
   @RequireAction('procurement:create-rfq')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
@@ -113,6 +127,7 @@ export class ProcurementController {
   }
 
   @Post('rfq/:id/quotes')
+  @RequireAction('procurement:add-quote')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async addQuote(
     @Param('id', ParseUUIDPipe) rfqId: string,

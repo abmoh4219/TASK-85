@@ -15,6 +15,7 @@ import { PutAway } from './put-away.entity';
 import { Reconciliation } from './reconciliation.entity';
 import { InventoryLevel } from '../inventory/inventory-level.entity';
 import { StockMovement } from '../inventory/stock-movement.entity';
+import { Vendor } from './vendor.entity';
 import { AuditLog } from '../admin/audit-log.entity';
 import { AuditLogService } from '../../common/services/audit-log.service';
 
@@ -25,6 +26,7 @@ import { AuditLogService } from '../../common/services/audit-log.service';
       PurchaseRequestItem,
       RFQ,
       RFQLine,
+      Vendor,
       VendorQuote,
       PurchaseOrder,
       POLine,

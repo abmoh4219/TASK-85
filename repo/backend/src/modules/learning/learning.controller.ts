@@ -56,8 +56,8 @@ export class LearningController {
   }
 
   @Get('plans/:id/lifecycle')
-  async getPlanLifecycle(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.service.getPlanLifecycle(id);
+  async getPlanLifecycle(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getPlanLifecycle(id, user);
     return { data };
   }
 
@@ -74,8 +74,8 @@ export class LearningController {
   }
 
   @Get('plans/:id/goals')
-  async getGoals(@Param('id', ParseUUIDPipe) planId: string) {
-    const data = await this.service.getGoals(planId);
+  async getGoals(@Param('id', ParseUUIDPipe) planId: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getGoals(planId, user);
     return { data };
   }
 

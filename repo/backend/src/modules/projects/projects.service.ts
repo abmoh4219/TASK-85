@@ -142,9 +142,16 @@ export class ProjectsService {
     return task;
   }
 
-  async getTasks(projectId: string): Promise<ProjectTask[]> {
-    const project = await this.projectRepo.findOne({ where: { id: projectId } });
+  async getTasks(projectId: string, user?: { id: string; role: UserRole }): Promise<ProjectTask[]> {
+    const project = await this.projectRepo.findOne({ where: { id: projectId }, relations: ['tasks'] });
     if (!project) throw new NotFoundException('Project not found');
+    if (user && user.role === UserRole.EMPLOYEE) {
+      const isOwner = project.ownerId === user.id;
+      const isAssigned = project.tasks?.some((t) => t.assignedToId === user.id);
+      if (!isOwner && !isAssigned) {
+        throw new ForbiddenException('You do not have access to this project');
+      }
+    }
     return this.taskRepo.find({
       where: { projectId },
       relations: ['deliverables'],

@@ -60,11 +60,23 @@ export class InventoryService {
       alertMap.set(a.itemId, existing);
     }
 
-    return items.map((item) => ({
-      ...item,
-      stockLevel: levelMap.get(item.id) ?? null,
-      alerts: alertMap.get(item.id) ?? [],
-    }));
+    return items.map((item) => {
+      const level = levelMap.get(item.id);
+      return {
+        id: level?.id ?? item.id,
+        itemId: item.id,
+        item,
+        currentStock: level ? Number(level.quantityOnHand) : 0,
+        safetyStockLevel: Number(item.safetyStockLevel) || 0,
+        minLevel: Number(item.minLevel) || 0,
+        maxLevel: Number(item.maxLevel) || 0,
+        avgDailyUsage: 0, // computed at check time, not stored per-row
+        leadTimeDays: item.leadTimeDays || 0,
+        bufferDays: item.replenishmentBufferDays ?? REPLENISHMENT_BUFFER_DEFAULT,
+        reorderPoint: (Number(item.safetyStockLevel) || 0) + (item.leadTimeDays || 0),
+        alerts: alertMap.get(item.id) ?? [],
+      };
+    });
   }
 
   async getItem(id: string) {
@@ -82,9 +94,25 @@ export class InventoryService {
     });
     const recommendations = await this.recoRepo.find({
       where: { itemId: id, status: RecommendationStatus.PENDING },
+      relations: ['item'],
     });
 
-    return { ...item, stockLevel, alerts, movements, recommendations };
+    return {
+      id: stockLevel?.id ?? item.id,
+      itemId: item.id,
+      item,
+      currentStock: stockLevel ? Number(stockLevel.quantityOnHand) : 0,
+      safetyStockLevel: Number(item.safetyStockLevel) || 0,
+      minLevel: Number(item.minLevel) || 0,
+      maxLevel: Number(item.maxLevel) || 0,
+      avgDailyUsage: 0,
+      leadTimeDays: item.leadTimeDays || 0,
+      bufferDays: item.replenishmentBufferDays ?? REPLENISHMENT_BUFFER_DEFAULT,
+      reorderPoint: (Number(item.safetyStockLevel) || 0) + (item.leadTimeDays || 0),
+      alerts,
+      movements,
+      recommendations,
+    };
   }
 
   // ── Alerts ─────────────────────────────────────────────────────────────────

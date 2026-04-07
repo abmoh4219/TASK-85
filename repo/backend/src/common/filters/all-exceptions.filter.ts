@@ -27,20 +27,31 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
+    const exceptionResponse =
       exception instanceof HttpException
-        ? (exception.getResponse() as Record<string, unknown>)
-        : 'Internal server error';
+        ? exception.getResponse()
+        : null;
+
+    let message = 'Internal server error';
+    let error = 'Internal Server Error';
+    if (typeof exceptionResponse === 'string') {
+      message = exceptionResponse;
+    } else if (exceptionResponse && typeof exceptionResponse === 'object') {
+      const resp = exceptionResponse as Record<string, unknown>;
+      message = typeof resp.message === 'string'
+        ? resp.message
+        : Array.isArray(resp.message)
+        ? (resp.message as string[]).join('; ')
+        : String(resp.message ?? 'Error');
+      error = typeof resp.error === 'string' ? resp.error : error;
+    }
 
     const errorBody = {
       statusCode: status,
+      message,
+      error,
       timestamp: new Date().toISOString(),
       path: request.url,
-      method: request.method,
-      error:
-        typeof message === 'object' && message !== null
-          ? message
-          : { message },
     };
 
     if (status >= 500) {

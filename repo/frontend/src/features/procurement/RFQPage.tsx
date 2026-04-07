@@ -23,15 +23,10 @@ function RFQList() {
 
   const { data: rfqs, isLoading } = useQuery({
     queryKey: ['procurement', 'rfq'],
-    queryFn: async () => {
-      // Get all requests and collect RFQs from approved ones
-      // Backend doesn't have GET /procurement/rfq — fetch via requests
-      return [] as RFQ[];
-    },
+    queryFn: () =>
+      apiClient.get('/procurement/rfq').then((r) => r.data.data as RFQ[]),
   });
 
-  // Actually the backend provides RFQs through purchase requests
-  // Let's use approved requests to create RFQs
   const { data: requests } = useQuery({
     queryKey: ['procurement', 'requests'],
     queryFn: () =>
@@ -222,7 +217,7 @@ export function RFQDetailPage({ rfqId }: { rfqId: string }) {
   const { data: vendors } = useQuery({
     queryKey: ['vendors'],
     queryFn: () =>
-      apiClient.get('/procurement/orders').then(() => [] as Array<{ id: string; name: string }>),
+      apiClient.get('/procurement/vendors').then((r) => r.data.data as Array<{ id: string; name: string }>),
   });
 
   const addQuote = useMutation({
@@ -282,13 +277,17 @@ export function RFQDetailPage({ rfqId }: { rfqId: string }) {
               </select>
             </div>
             <div>
-              <Label className="text-xs mb-1 block">Vendor ID</Label>
-              <Input
-                placeholder="Vendor UUID"
+              <Label className="text-xs mb-1 block">Vendor</Label>
+              <select
                 value={quoteForm.vendorId}
                 onChange={(e) => setQuoteForm((f) => ({ ...f, vendorId: e.target.value }))}
-                className="h-9 text-sm"
-              />
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Select vendor…</option>
+                {(vendors ?? []).map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <Label className="text-xs mb-1 block">Unit Price</Label>

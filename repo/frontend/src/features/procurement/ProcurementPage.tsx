@@ -14,6 +14,56 @@ import { format } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import type { PurchaseRequest } from '@/types';
 
+/** Extracted as a proper component to avoid hook-rule violations in cell callbacks */
+function RequestActions({ request }: { request: PurchaseRequest }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const submit = useMutation({
+    mutationFn: () => apiClient.patch(`/procurement/requests/${request.id}/submit`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'requests'] }),
+  });
+  const approve = useMutation({
+    mutationFn: () => apiClient.patch(`/procurement/requests/${request.id}/approve`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'requests'] }),
+  });
+
+  return (
+    <div className="flex items-center gap-1 justify-end">
+      {request.status === 'draft' && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          onClick={(e) => { e.stopPropagation(); submit.mutate(); }}
+          disabled={submit.isPending}
+        >
+          Submit
+        </Button>
+      )}
+      {request.status === 'submitted' && (user?.role === 'admin' || user?.role === 'supervisor') && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs text-green-600 hover:text-green-700"
+          onClick={(e) => { e.stopPropagation(); approve.mutate(); }}
+          disabled={approve.isPending}
+        >
+          Approve
+        </Button>
+      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 w-7 p-0"
+        onClick={(e) => { e.stopPropagation(); navigate(`/procurement/requests/${request.id}`); }}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
+
 const COLUMNS: ColumnDef<PurchaseRequest>[] = [
   {
     accessorKey: 'id',
@@ -61,59 +111,7 @@ const COLUMNS: ColumnDef<PurchaseRequest>[] = [
   {
     id: 'actions',
     header: '',
-    cell: ({ row }) => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { user } = useAuth();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const navigate = useNavigate();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const qc = useQueryClient();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const submit = useMutation({
-        mutationFn: () => apiClient.patch(`/procurement/requests/${row.original.id}/submit`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'requests'] }),
-      });
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const approve = useMutation({
-        mutationFn: () => apiClient.patch(`/procurement/requests/${row.original.id}/approve`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'requests'] }),
-      });
-
-      return (
-        <div className="flex items-center gap-1 justify-end">
-          {row.original.status === 'draft' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={(e) => { e.stopPropagation(); submit.mutate(); }}
-              disabled={submit.isPending}
-            >
-              Submit
-            </Button>
-          )}
-          {row.original.status === 'submitted' && (user?.role === 'admin' || user?.role === 'supervisor') && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-green-600 hover:text-green-700"
-              onClick={(e) => { e.stopPropagation(); approve.mutate(); }}
-              disabled={approve.isPending}
-            >
-              Approve
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={(e) => { e.stopPropagation(); navigate(`/procurement/requests/${row.original.id}`); }}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      );
-    },
+    cell: ({ row }) => <RequestActions request={row.original} />,
     size: 120,
   },
 ];

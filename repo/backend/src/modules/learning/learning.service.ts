@@ -116,9 +116,12 @@ export class LearningService {
     return plan;
   }
 
-  async getPlanLifecycle(id: string): Promise<LearningPlanLifecycle[]> {
+  async getPlanLifecycle(id: string, user?: { id: string; role: UserRole }): Promise<LearningPlanLifecycle[]> {
     const plan = await this.planRepo.findOne({ where: { id } });
     if (!plan) throw new NotFoundException('Learning plan not found');
+    if (user && user.role === UserRole.EMPLOYEE && plan.userId !== user.id) {
+      throw new ForbiddenException('You do not have access to this learning plan');
+    }
     return this.lifecycleRepo.find({ where: { planId: id }, order: { createdAt: 'ASC' } });
   }
 
@@ -145,9 +148,12 @@ export class LearningService {
     return goal;
   }
 
-  async getGoals(planId: string): Promise<LearningGoal[]> {
+  async getGoals(planId: string, user?: { id: string; role: UserRole }): Promise<LearningGoal[]> {
     const plan = await this.planRepo.findOne({ where: { id: planId } });
     if (!plan) throw new NotFoundException('Learning plan not found');
+    if (user && user.role === UserRole.EMPLOYEE && plan.userId !== user.id) {
+      throw new ForbiddenException('You do not have access to this learning plan');
+    }
     return this.goalRepo.find({
       where: { planId },
       relations: ['studySessions'],
