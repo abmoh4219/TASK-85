@@ -9,19 +9,25 @@ echo "========================================"
 
 FAILED=0
 
+# ── Backend ──────────────────────────────────────────────
+cd "$SCRIPT_DIR/backend"
+[ -d node_modules ] || npm install --ignore-scripts 2>&1
+
 echo ""
 echo "--- Backend Unit Tests ---"
-cd "$SCRIPT_DIR/backend"
-npx jest --testPathPattern="\.spec\.ts$" --forceExit --passWithNoTests --ci 2>&1 || FAILED=1
+./node_modules/.bin/jest --testPathPattern="\.spec\.ts$" --forceExit --passWithNoTests --ci 2>&1 || FAILED=1
 
 echo ""
 echo "--- Backend Integration/E2E Tests (Real DB) ---"
-npx jest --config ./test/jest-e2e.json --testPathPattern="\.e2e-spec\.ts$" --runInBand --forceExit --passWithNoTests --ci 2>&1 || FAILED=1
+./node_modules/.bin/jest --config ./test/jest-e2e.json --testPathPattern="\.e2e-spec\.ts$" --runInBand --forceExit --passWithNoTests --ci 2>&1 || FAILED=1
+
+# ── Frontend ─────────────────────────────────────────────
+cd "$SCRIPT_DIR/frontend"
+[ -d node_modules ] || npm install --ignore-scripts 2>&1
 
 echo ""
 echo "--- Frontend Unit Tests ---"
-cd "$SCRIPT_DIR/frontend"
-npx vitest run --passWithNoTests 2>&1 || FAILED=1
+./node_modules/.bin/vitest run --passWithNoTests 2>&1 || FAILED=1
 
 echo ""
 echo "========================================"

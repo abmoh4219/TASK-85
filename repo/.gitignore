@@ -12,3 +12,4 @@ coverage/
 *.tsbuildinfo
 .claude/
 convert-ai-sessions.py
+prompt.txt
