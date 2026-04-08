@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { RuleRollout } from './rule-rollout.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('rollout_feedback')
 export class RolloutFeedback {
@@ -19,7 +20,7 @@ export class RolloutFeedback {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   feedback: string | null;
 
   @Column({ name: 'is_positive', type: 'boolean', nullable: true })

@@ -108,20 +108,17 @@ export function AppRouter() {
       <Route element={<ProtectedRoute allowedRoles={['admin', 'supervisor']} />}>
         <Route element={<AppLayout />}>
           <Route path="/anomalies" element={wrap(<AnomalyQueuePage />)} />
-          <Route path="/procurement" element={wrap(<ProcurementPage />)} />
-          <Route path="/procurement/new" element={wrap(<CreateRequestPage />)} />
           <Route path="/procurement/rfq" element={wrap(<RFQPage />)} />
           <Route path="/procurement/rfq/:id" element={wrap(<RFQDetailWrapper />)} />
           <Route path="/procurement/orders" element={wrap(<OrdersPage />)} />
           <Route path="/procurement/orders/:id" element={wrap(<OrderDetailPage />)} />
-          <Route path="/procurement/requests/:id" element={wrap(<RequestDetailPage />)} />
           <Route path="/inventory" element={wrap(<InventoryPage />)} />
           <Route path="/inventory/:id" element={wrap(<ItemDetailPage />)} />
         </Route>
       </Route>
 
-      {/* Employee procurement */}
-      <Route element={<ProtectedRoute allowedRoles={['employee']} />}>
+      {/* All authenticated: procurement (role scoping in backend + ProcurementPage) */}
+      <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/procurement" element={wrap(<ProcurementPage />)} />
           <Route path="/procurement/new" element={wrap(<CreateRequestPage />)} />

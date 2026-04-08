@@ -1,6 +1,6 @@
 # MeridianMed API Specification
 # Task ID: w2t85
-# Base URL: http://localhost:4000
+# Base URL: https://localhost:3000/api (proxied) or https://localhost:4000 (direct)
 # Generated from: actual implemented code (Phase 13)
 
 ---
@@ -791,7 +791,7 @@ Conflict example: `[{ "ruleId": "uuid", "ruleName": "...", "reason": "..." }]`
 ### POST /rules/:id/rollback
 **Response 201:** `{ "data": BusinessRule }` — reverts to previous RuleVersion
 Must complete within 5 minutes (MAX_ROLLBACK_MS = 300,000ms)
-**Errors:** 400 if no previous version exists, 408 if rollback exceeds timeout
+**Errors:** 400 if no previous version exists, 400 if rollback exceeds 5-minute time limit
 
 ---
 
@@ -907,7 +907,7 @@ POST /auth/logout { userId, refreshToken } + Bearer token
 | 401       | Unauthorized                         | Missing/expired/invalid JWT, revoked refresh token |
 | 403       | Forbidden                            | Insufficient role for endpoint, inactive user login |
 | 404       | Not Found                            | Resource UUID not found                        |
-| 408       | Request Timeout                      | Rules rollback exceeded 5-minute limit         |
+| 400       | Bad Request                          | Rules rollback exceeded 5-minute limit         |
 | 409       | Conflict                             | Duplicate username, unique constraint violation |
 | 429       | Too Many Requests                    | Rate limit exceeded (10 req/min/user)          |
 | 500       | Internal Server Error                | Unexpected server error (see logs)             |

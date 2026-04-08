@@ -10,30 +10,32 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │  Browser (Chrome / Firefox)                                      │
 │  React 18 + TypeScript + TailwindCSS + shadcn/ui                │
-│  Port :3000                                                      │
+│  HTTPS :3000 (self-signed cert)                                 │
 └────────────────────────┬────────────────────────────────────────┘
-                         │ HTTP/JSON (REST)
+                         │ HTTPS/JSON (REST)
                          │ axios + TanStack Query
                          │ auto-refresh on 401
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Nginx (Alpine)                                                  │
+│  Nginx (Alpine) — TLS termination + API reverse proxy           │
 │  - Serves React build from /usr/share/nginx/html                │
 │  - SPA routing: try_files $uri $uri/ /index.html               │
-│  Port :80 (mapped to host :3000)                               │
+│  - /api/* → proxied to backend via HTTPS                        │
+│  - HTTP :80 redirects to HTTPS :443                             │
+│  Port :443 (mapped to host :3000)                              │
 └────────────────────────┬────────────────────────────────────────┘
-                         │ HTTP proxy (direct in dev)
+                         │ HTTPS proxy → backend:4000
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  NestJS (node:20-alpine)                                         │
+│  NestJS (node:20-alpine) — HTTPS with self-signed cert          │
 │  - Helmet security headers                                       │
 │  - CORS restricted to CORS_ORIGIN env var                       │
 │  - JWT access token (15 min, HS256)                             │
 │  - Rate limiting: 10 req/min/user (AnomalyThrottlerGuard)      │
-│  - Nonce + timestamp replay prevention                          │
+│  - Nonce + timestamp replay prevention (DB-backed, user-scoped) │
 │  - Global validation pipe (class-validator)                     │
-│  - Winston structured JSON logging                              │
-│  Port :4000                                                     │
+│  - Winston structured JSON logging (JSON in production)         │
+│  Port :4000 (HTTPS)                                             │
 └────────────────────────┬────────────────────────────────────────┘
                          │ TypeORM (pg driver)
                          ▼
@@ -55,8 +57,8 @@
 | Service    | Image              | Port           | Role                          |
 |------------|--------------------|----------------|-------------------------------|
 | postgres   | postgres:15-alpine | 5432→5434      | Primary database              |
-| backend    | repo-backend       | 4000→4000      | NestJS API server             |
-| frontend   | repo-frontend      | 80→3000        | React SPA via Nginx           |
+| backend    | repo-backend       | 4000→4000      | NestJS API server (HTTPS)     |
+| frontend   | repo-frontend      | 443→3000, 80→3080 | React SPA + API proxy (HTTPS) |
 
 Startup order: `postgres` (healthy) → `backend` → `frontend`
 

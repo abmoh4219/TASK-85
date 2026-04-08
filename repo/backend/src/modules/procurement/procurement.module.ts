@@ -18,9 +18,11 @@ import { StockMovement } from '../inventory/stock-movement.entity';
 import { Vendor } from './vendor.entity';
 import { AuditLog } from '../admin/audit-log.entity';
 import { AuditLogService } from '../../common/services/audit-log.service';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
+    AdminModule,
     TypeOrmModule.forFeature([
       PurchaseRequest,
       PurchaseRequestItem,

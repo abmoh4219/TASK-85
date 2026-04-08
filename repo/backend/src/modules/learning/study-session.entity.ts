@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { LearningGoal } from './learning-goal.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('study_sessions')
 export class StudySession {
@@ -22,7 +23,7 @@ export class StudySession {
   @Column({ name: 'duration_minutes', type: 'int', nullable: true })
   durationMinutes: number | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @Column({ name: 'session_date', type: 'timestamptz', default: () => 'NOW()' })

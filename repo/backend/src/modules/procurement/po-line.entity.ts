@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { PurchaseOrder } from './purchase-order.entity';
 import { Item } from '../inventory/item.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('po_lines')
 export class POLine {
@@ -33,7 +34,7 @@ export class POLine {
   @Column({ name: 'unit_price', type: 'decimal', precision: 12, scale: 4 })
   unitPrice: number;
 
-  @Column({ name: 'unit_of_measure', length: 50 })
+  @Column({ name: 'unit_of_measure', length: 512, transformer: aesTransformer })
   unitOfMeasure: string;
 
   @Column({ name: 'backorder_quantity', type: 'decimal', precision: 12, scale: 4, default: 0 })

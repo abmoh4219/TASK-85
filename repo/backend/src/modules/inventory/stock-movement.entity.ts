@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn, Index,
 } from 'typeorm';
 import { Item } from './item.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum MovementType {
   RECEIPT = 'receipt',
@@ -38,7 +39,7 @@ export class StockMovement {
   @Column({ name: 'quantity_after', type: 'decimal', precision: 12, scale: 4 })
   quantityAfter: number;
 
-  @Column({ name: 'reference_type', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'reference_type', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   referenceType: string | null;
 
   @Column({ name: 'reference_id', type: 'uuid', nullable: true })
@@ -47,7 +48,7 @@ export class StockMovement {
   @Column({ name: 'performed_by_id', type: 'uuid', nullable: true })
   performedById: string | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

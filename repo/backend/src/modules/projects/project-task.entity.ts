@@ -5,6 +5,7 @@ import {
 } from 'typeorm';
 import { Project } from './project.entity';
 import { Deliverable } from './deliverable.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum TaskStatus {
   PENDING = 'pending',
@@ -26,10 +27,10 @@ export class ProjectTask {
   @JoinColumn({ name: 'project_id' })
   project: Project;
 
-  @Column({ length: 300 })
+  @Column({ length: 512, transformer: aesTransformer })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
   @Column({ name: 'assigned_to_id', type: 'uuid', nullable: true })

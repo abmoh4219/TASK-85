@@ -9,7 +9,7 @@ export const appConfig = () => ({
     password: process.env.DB_PASSWORD || 'meridian_secret',
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'default_jwt_secret_change_me',
+    secret: process.env.JWT_SECRET, // Required — no fallback. Set in docker-compose.yml.
     expiresIn: process.env.JWT_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '8h',
   },

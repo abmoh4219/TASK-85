@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { POReceipt } from './po-receipt.entity';
 import { POLine } from './po-line.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum InspectionResult {
   PENDING = 'pending',
@@ -36,10 +37,10 @@ export class POReceiptLine {
   @Column({ name: 'inspection_result', type: 'enum', enum: InspectionResult, default: InspectionResult.PENDING })
   inspectionResult: InspectionResult;
 
-  @Column({ name: 'inspection_notes', type: 'text', nullable: true })
+  @Column({ name: 'inspection_notes', type: 'text', nullable: true, transformer: aesTransformer })
   inspectionNotes: string | null;
 
-  @Column({ name: 'lot_number', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'lot_number', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   lotNumber: string | null;
 
   @Column({ name: 'expiry_date', type: 'timestamptz', nullable: true })

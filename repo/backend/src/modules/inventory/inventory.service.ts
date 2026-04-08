@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Item } from './item.entity';
+import { ItemCategory } from './item-category.entity';
 import { InventoryLevel } from './inventory-level.entity';
 import { StockMovement, MovementType } from './stock-movement.entity';
 import { Alert, AlertType, AlertSeverity, AlertStatus } from './alert.entity';
@@ -26,6 +27,7 @@ export const FIFTY_SIX_DAYS_MS = 56 * 24 * 60 * 60 * 1000;
 export class InventoryService {
   constructor(
     @InjectRepository(Item) private readonly itemRepo: Repository<Item>,
+    @InjectRepository(ItemCategory) private readonly categoryRepo: Repository<ItemCategory>,
     @InjectRepository(InventoryLevel) private readonly levelRepo: Repository<InventoryLevel>,
     @InjectRepository(StockMovement) private readonly movementRepo: Repository<StockMovement>,
     @InjectRepository(Alert) private readonly alertRepo: Repository<Alert>,
@@ -113,6 +115,43 @@ export class InventoryService {
       movements,
       recommendations,
     };
+  }
+
+  // ── Catalog Management (Admin) ────────────────────────────────────────────
+
+  async getCategories() {
+    return this.categoryRepo.find({ order: { name: 'ASC' } });
+  }
+
+  async createCategory(data: { name: string; description?: string }) {
+    return this.categoryRepo.save(this.categoryRepo.create(data));
+  }
+
+  async updateCategory(id: string, data: { name?: string; description?: string }) {
+    const cat = await this.categoryRepo.findOne({ where: { id } });
+    if (!cat) throw new NotFoundException('Category not found');
+    if (data.name !== undefined) cat.name = data.name;
+    if (data.description !== undefined) cat.description = data.description ?? null;
+    return this.categoryRepo.save(cat);
+  }
+
+  async createItem(data: {
+    name: string; sku: string; description?: string; unitOfMeasure?: string;
+    categoryId?: string; safetyStockLevel?: number; minLevel?: number; maxLevel?: number;
+    leadTimeDays?: number; replenishmentBufferDays?: number;
+  }) {
+    return this.itemRepo.save(this.itemRepo.create(data));
+  }
+
+  async updateItem(id: string, data: Partial<{
+    name: string; description: string; unitOfMeasure: string; categoryId: string;
+    safetyStockLevel: number; minLevel: number; maxLevel: number;
+    leadTimeDays: number; replenishmentBufferDays: number; isActive: boolean;
+  }>) {
+    const item = await this.itemRepo.findOne({ where: { id } });
+    if (!item) throw new NotFoundException('Item not found');
+    Object.assign(item, data);
+    return this.itemRepo.save(item);
   }
 
   // ── Alerts ─────────────────────────────────────────────────────────────────

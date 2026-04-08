@@ -44,6 +44,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async me(@CurrentUser() user: { id: string }) {
     const profile = await this.authService.getProfile(user.id);
     return { data: profile };

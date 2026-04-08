@@ -12,6 +12,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { AlertStatus } from './alert.entity';
 import { GenerateRecommendationsDto } from './dto/generate-recommendations.dto';
+import { CreateCategoryDto, UpdateCategoryDto, CreateItemDto, UpdateItemDto } from './dto/catalog.dto';
 
 type AuthUser = { id: string; role: UserRole };
 
@@ -34,6 +35,50 @@ export class InventoryController {
   @Get('items/:id')
   async getItem(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.service.getItem(id);
+    return { data };
+  }
+
+  // ── Catalog Management (Admin) ────────────────────────────────────────────
+
+  @Get('categories')
+  async getCategories() {
+    const data = await this.service.getCategories();
+    return { data };
+  }
+
+  @Post('categories')
+  @Roles(UserRole.ADMIN)
+  async createCategory(@Body() dto: CreateCategoryDto) {
+    const data = await this.service.createCategory(dto);
+    return { data };
+  }
+
+  @Patch('categories/:id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async updateCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCategoryDto,
+  ) {
+    const data = await this.service.updateCategory(id, dto);
+    return { data };
+  }
+
+  @Post('items')
+  @Roles(UserRole.ADMIN)
+  async createItem(@Body() dto: CreateItemDto) {
+    const data = await this.service.createItem(dto);
+    return { data };
+  }
+
+  @Patch('items/:id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async updateItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateItemDto,
+  ) {
+    const data = await this.service.updateItem(id, dto);
     return { data };
   }
 

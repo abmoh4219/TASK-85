@@ -9,9 +9,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
-import { ProjectStatus } from './project.entity';
-import { TaskStatus } from './project-task.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { AdvanceProjectStatusDto, AdvanceTaskStatusDto } from './dto/advance-status.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { CreateMilestoneDto, UpdateMilestoneDto } from './dto/create-milestone.dto';
 import { SubmitDeliverableDto } from './dto/submit-deliverable.dto';
@@ -52,10 +51,10 @@ export class ProjectsController {
   @HttpCode(HttpStatus.OK)
   async advanceStatus(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('status') status: ProjectStatus,
+    @Body() dto: AdvanceProjectStatusDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.advanceProjectStatus(id, status, user.id);
+    const data = await this.service.advanceProjectStatus(id, dto.status, user.id);
     return { data };
   }
 
@@ -84,10 +83,10 @@ export class ProjectsController {
   async advanceTaskStatus(
     @Param('id', ParseUUIDPipe) projectId: string,
     @Param('taskId', ParseUUIDPipe) taskId: string,
-    @Body('status') status: TaskStatus,
+    @Body() dto: AdvanceTaskStatusDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.advanceTaskStatus(projectId, taskId, status, user.id, user.role);
+    const data = await this.service.advanceTaskStatus(projectId, taskId, dto.status, user.id, user.role);
     return { data };
   }
 

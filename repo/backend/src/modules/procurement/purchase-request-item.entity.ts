@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { PurchaseRequest } from './purchase-request.entity';
 import { Item } from '../inventory/item.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('purchase_request_items')
 export class PurchaseRequestItem {
@@ -30,10 +31,10 @@ export class PurchaseRequestItem {
   @Column({ type: 'decimal', precision: 12, scale: 4 })
   quantity: number;
 
-  @Column({ name: 'unit_of_measure', length: 50 })
+  @Column({ name: 'unit_of_measure', length: 512, transformer: aesTransformer })
   unitOfMeasure: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

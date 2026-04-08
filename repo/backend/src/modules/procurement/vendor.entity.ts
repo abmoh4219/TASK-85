@@ -9,7 +9,7 @@ export class Vendor {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 200 })
+  @Column({ length: 512, transformer: aesTransformer })
   name: string;
 
   @Column({ name: 'contact_name', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
@@ -21,7 +21,7 @@ export class Vendor {
   @Column({ type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   phone: string | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   address: string | null;
 
   @Column({ name: 'is_active', default: true })

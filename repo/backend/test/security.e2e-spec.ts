@@ -846,4 +846,151 @@ describe('Security (e2e)', () => {
       await dataSource.query(`DELETE FROM lab_samples WHERE id = $1`, [sampleId]);
     });
   });
+
+  // ── Lab report cross-user read denial ──────────────────────────────────
+
+  describe('Lab report/history cross-user read denial', () => {
+    let sampleId: string;
+    let reportId: string;
+
+    beforeAll(async () => {
+      // Admin creates a sample and report
+      const sRes = await request(app.getHttpServer())
+        .post('/lab/samples')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ sampleType: 'Blood', collectionDate: new Date().toISOString() });
+      sampleId = sRes.body.data.id;
+
+      // Advance to in_progress
+      await request(app.getHttpServer())
+        .patch(`/lab/samples/${sampleId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ status: 'in_progress' });
+
+      // Create report
+      const rRes = await request(app.getHttpServer())
+        .post(`/lab/samples/${sampleId}/report`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ summary: 'Admin report' });
+      reportId = rRes.body.data.id;
+    });
+
+    it('employee cannot read report belonging to another user sample', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/lab/reports/${reportId}`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+      expect(res.status).toBe(403);
+    });
+
+    it('employee cannot read report history of another user sample', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/lab/reports/${reportId}/history`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+      expect(res.status).toBe(403);
+    });
+
+    afterAll(async () => {
+      await dataSource.query(`DELETE FROM lab_report_versions WHERE report_id = $1`, [reportId]);
+      await dataSource.query(`DELETE FROM lab_reports WHERE id = $1`, [reportId]);
+      await dataSource.query(`DELETE FROM lab_samples WHERE id = $1`, [sampleId]);
+    });
+  });
+
+  // ── Learning compliance cross-user denial ──────────────────────────────
+
+  describe('Learning compliance cross-user read denial', () => {
+    let planId: string;
+    let goalId: string;
+
+    beforeAll(async () => {
+      const pRes = await request(app.getHttpServer())
+        .post('/learning/plans')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ title: 'Compliance Test Plan', userId: adminUserId });
+      planId = pRes.body.data.id;
+
+      await request(app.getHttpServer())
+        .patch(`/learning/plans/${planId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ status: 'active', reason: 'test' });
+
+      const gRes = await request(app.getHttpServer())
+        .post(`/learning/plans/${planId}/goals`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ title: 'Compliance Goal', sessionsPerWeek: 3 });
+      goalId = gRes.body.data.id;
+    });
+
+    it('employee cannot check compliance for a goal in another user plan', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/learning/goals/${goalId}/compliance`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+      expect(res.status).toBe(403);
+    });
+
+    afterAll(async () => {
+      await dataSource.query(`DELETE FROM learning_goals WHERE id = $1`, [goalId]);
+      await dataSource.query(`DELETE FROM learning_plan_lifecycle WHERE plan_id = $1`, [planId]);
+      await dataSource.query(`DELETE FROM learning_plans WHERE id = $1`, [planId]);
+    });
+  });
+
+  // ── Catalog management RBAC tests ──────────────────────────────────────
+
+  describe('Catalog management RBAC', () => {
+    it('employee cannot create item category', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/inventory/categories')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({ name: 'Unauthorized Category' });
+      expect(res.status).toBe(403);
+    });
+
+    it('employee cannot create vendor', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/procurement/vendors')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({ name: 'Unauthorized Vendor' });
+      expect(res.status).toBe(403);
+    });
+
+    it('admin can create item category', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/inventory/categories')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ name: `TestCat-${Date.now()}` });
+      expect(res.status).toBe(201);
+      if (res.body.data?.id) {
+        await dataSource.query(`DELETE FROM item_categories WHERE id = $1`, [res.body.data.id]);
+      }
+    });
+  });
+
+  // ── Export enforcement ─────────────────────────────────────────────────
+
+  describe('Export enforcement', () => {
+    it('admin can export procurement data', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/procurement/export')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.data.exportedAt).toBeDefined();
+    });
+
+    it('employee is denied procurement export', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/procurement/export')
+        .set('Authorization', `Bearer ${employeeToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
 });

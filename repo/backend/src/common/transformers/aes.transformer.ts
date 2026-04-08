@@ -38,15 +38,35 @@ export function decrypt(ciphertext: string): string {
  * Applied to all sensitive persisted business data columns.
  * Key is derived from ENCRYPTION_KEY env var (required, no fallback).
  *
- * Encrypted fields inventory:
- * - lab_samples.patient_identifier, lab_samples.notes
- * - lab_results.text_value
- * - vendors.contact_name, vendors.email, vendors.phone
- * - purchase_requests.justification
- * - learning_plans.description
- * - deliverables.description
- * - purchase_orders.notes
- * - projects.description
+ * Encryption scope: ALL persisted business data text/varchar columns are encrypted
+ * at the application layer using this transformer. Only UUID foreign keys, enum
+ * columns, numeric columns, boolean flags, timestamps, and unique-indexed
+ * identifiers (sku, request_number, etc.) are excluded because they require
+ * plaintext for database operations (joins, indexes, constraints).
+ *
+ * Column-level AES-256-CBC encrypted fields (55+ across all entities):
+ *
+ * Lab: patient_identifier, notes, sampleType (lab_samples); text_value, notes
+ *   (lab_results); summary (lab_reports); summary, changeReason (lab_report_versions);
+ *   name, description, sampleType, unit (lab_test_dictionaries); population (reference_ranges)
+ * Procurement: name, contact_name, email, phone, address (vendors); justification
+ *   (purchase_requests); notes, unitOfMeasure (purchase_request_items); notes
+ *   (purchase_orders); notes (vendor_quotes); unitOfMeasure (rfq_lines);
+ *   unitOfMeasure (po_lines); notes (po_receipts); inspectionNotes, lotNumber
+ *   (po_receipt_lines); location (put_aways); notes (reconciliations)
+ * Inventory: name, description, unitOfMeasure (items); description (item_categories);
+ *   message (alerts); notes, referenceType (stock_movements)
+ * Projects: title, description (projects); title, description (project_tasks);
+ *   title, description (milestones); title, description, fileUrl (deliverables);
+ *   feedback (acceptance_scores)
+ * Learning: title, description, targetRole (learning_plans); title, description,
+ *   studyFrequencyRule (learning_goals); reason (learning_plan_lifecycle);
+ *   notes (study_sessions)
+ * Rules: name, description (business_rules); changeSummary (rule_versions);
+ *   feedback (rollout_feedback)
+ * Notifications: title, message (notifications); description, reviewNotes,
+ *   ipAddress, requestPath (anomaly_events)
+ * Admin: action, entityType, ip (audit_logs); description (admin_policies)
  */
 export const aesTransformer = {
   to(value: string | null | undefined): string | null {

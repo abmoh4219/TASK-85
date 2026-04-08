@@ -613,6 +613,17 @@ export class ProcurementService {
     return this.vendorRepo.find({ where: { isActive: true }, order: { name: 'ASC' } });
   }
 
+  async createVendor(data: { name: string; contactName?: string; email?: string; phone?: string; address?: string }) {
+    return this.vendorRepo.save(this.vendorRepo.create({ ...data, isActive: true }));
+  }
+
+  async updateVendor(id: string, data: Partial<{ name: string; contactName: string; email: string; phone: string; address: string; isActive: boolean }>) {
+    const vendor = await this.vendorRepo.findOne({ where: { id } });
+    if (!vendor) throw new NotFoundException('Vendor not found');
+    Object.assign(vendor, data);
+    return this.vendorRepo.save(vendor);
+  }
+
   // ── Private helpers ──────────────────────────────────────────────────────
 
   private async findPROrFail(id: string): Promise<PurchaseRequest> {

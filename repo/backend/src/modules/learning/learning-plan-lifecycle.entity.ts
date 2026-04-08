@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { LearningPlan, LearningPlanStatus } from './learning-plan.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('learning_plan_lifecycle')
 export class LearningPlanLifecycle {
@@ -25,7 +26,7 @@ export class LearningPlanLifecycle {
   @Column({ name: 'changed_by_id' })
   changedById: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   reason: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

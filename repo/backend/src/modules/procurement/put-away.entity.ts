@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { POReceiptLine } from './po-receipt-line.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('put_aways')
 export class PutAway {
@@ -19,7 +20,7 @@ export class PutAway {
   @Column({ name: 'stored_by_id' })
   storedById: string;
 
-  @Column({ name: 'location', type: 'varchar', length: 200, nullable: true })
+  @Column({ name: 'location', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   location: string | null;
 
   @Column({ name: 'quantity_stored', type: 'decimal', precision: 12, scale: 4 })

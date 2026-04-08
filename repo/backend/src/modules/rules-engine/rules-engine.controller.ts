@@ -10,6 +10,7 @@ import { RequireAction } from '../../common/decorators/require-action.decorator'
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { CreateRuleDto, UpdateRuleDto } from './dto/create-rule.dto';
+import { StageRolloutDto } from './dto/stage-rollout.dto';
 
 type AuthUser = { id: string; role: UserRole };
 
@@ -67,10 +68,10 @@ export class RulesEngineController {
   @HttpCode(HttpStatus.OK)
   async stageRollout(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('rolloutPercentage') rolloutPercentage: number,
+    @Body() dto: StageRolloutDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.stageRollout(id, rolloutPercentage, user.id);
+    const data = await this.service.stageRollout(id, dto.rolloutPercentage, user.id);
     return { data };
   }
 

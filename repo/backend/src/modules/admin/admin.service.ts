@@ -74,6 +74,7 @@ export class AdminService {
    * Used by export endpoints to enforce policy.
    */
   async canExport(role: string, scope: string): Promise<boolean> {
+    await this.ensureDefaults();
     const policy = await this.repo.findOne({ where: { key: 'export-permissions' } });
     if (!policy) return false;
     const rolePerm = (policy.value as Record<string, { scope: string }>)[role];

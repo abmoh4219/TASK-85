@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { RFQLine } from './rfq-line.entity';
 import { Vendor } from './vendor.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('vendor_quotes')
 export class VendorQuote {
@@ -36,7 +37,7 @@ export class VendorQuote {
   @Column({ name: 'is_selected', default: false })
   isSelected: boolean;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

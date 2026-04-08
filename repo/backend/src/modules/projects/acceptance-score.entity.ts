@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { Project } from './project.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('acceptance_scores')
 export class AcceptanceScore {
@@ -28,7 +29,7 @@ export class AcceptanceScore {
   @Column({ name: 'max_score', type: 'decimal', precision: 5, scale: 2, default: 100 })
   maxScore: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   feedback: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

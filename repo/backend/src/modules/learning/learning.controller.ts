@@ -9,8 +9,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
-import { LearningPlanStatus } from './learning-plan.entity';
 import { CreatePlanDto } from './dto/create-plan.dto';
+import { AdvancePlanStatusDto } from './dto/advance-plan-status.dto';
 import { CreateGoalDto } from './dto/create-goal.dto';
 import { LogSessionDto } from './dto/log-session.dto';
 
@@ -47,11 +47,10 @@ export class LearningController {
   @HttpCode(HttpStatus.OK)
   async advancePlanStatus(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('status') status: LearningPlanStatus,
-    @Body('reason') reason: string,
+    @Body() dto: AdvancePlanStatusDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.advancePlanStatus(id, status, user.id, reason);
+    const data = await this.service.advancePlanStatus(id, dto.status, user.id, dto.reason);
     return { data };
   }
 
@@ -91,8 +90,8 @@ export class LearningController {
   }
 
   @Get('goals/:id/compliance')
-  async checkFrequencyCompliance(@Param('id', ParseUUIDPipe) goalId: string) {
-    const data = await this.service.checkFrequencyCompliance(goalId);
+  async checkFrequencyCompliance(@Param('id', ParseUUIDPipe) goalId: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.checkFrequencyCompliance(goalId, user);
     return { data };
   }
 }

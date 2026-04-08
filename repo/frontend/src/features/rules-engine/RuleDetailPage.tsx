@@ -1,6 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
+import { PageLoader } from '@/components/shared/LoadingSpinner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { Settings } from 'lucide-react';
 
 export function RuleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,11 +19,11 @@ export function RuleDetailPage() {
   });
 
   if (isLoading) {
-    return <div className="p-6 text-muted-foreground">Loading rule...</div>;
+    return <PageLoader />;
   }
 
   if (!rule) {
-    return <div className="p-6 text-destructive">Rule not found.</div>;
+    return <div className="p-6"><EmptyState icon={Settings} title="Rule not found" /></div>;
   }
 
   const currentVersion = rule.versions?.find(

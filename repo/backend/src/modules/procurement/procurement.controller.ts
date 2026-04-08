@@ -4,7 +4,9 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
+import { ForbiddenException } from '@nestjs/common';
 import { ProcurementService } from './procurement.service';
+import { AdminService } from '../admin/admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -19,13 +21,18 @@ import { ReceiveOrderDto } from './dto/receive-order.dto';
 import { InspectReceiptDto } from './dto/inspect-receipt.dto';
 import { PutAwayDto } from './dto/put-away.dto';
 import { ApproveSubstituteDto } from './dto/substitute.dto';
+import { UpdateLinePriceDto } from './dto/update-line-price.dto';
+import { CreateVendorDto, UpdateVendorDto } from './dto/vendor.dto';
 
 type AuthUser = { id: string; role: UserRole };
 
 @Controller('procurement')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ProcurementController {
-  constructor(private readonly service: ProcurementService) {}
+  constructor(
+    private readonly service: ProcurementService,
+    private readonly adminService: AdminService,
+  ) {}
 
   // ── Purchase Requests ────────────────────────────────────────────────
 
@@ -113,6 +120,24 @@ export class ProcurementController {
     return { data };
   }
 
+  @Post('vendors')
+  @Roles(UserRole.ADMIN)
+  async createVendor(@Body() dto: CreateVendorDto) {
+    const data = await this.service.createVendor(dto);
+    return { data };
+  }
+
+  @Patch('vendors/:id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async updateVendor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateVendorDto,
+  ) {
+    const data = await this.service.updateVendor(id, dto);
+    return { data };
+  }
+
   @Post('rfq')
   @RequireAction('procurement:create-rfq')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
@@ -195,11 +220,11 @@ export class ProcurementController {
   async updateLinePrice(
     @Param('poId', ParseUUIDPipe) poId: string,
     @Param('lineId', ParseUUIDPipe) lineId: string,
-    @Body('unitPrice') unitPrice: number,
+    @Body() dto: UpdateLinePriceDto,
     @CurrentUser() user: AuthUser,
     @Req() req: Request,
   ) {
-    const data = await this.service.updatePOLinePrice(poId, lineId, unitPrice, user.id, req.ip);
+    const data = await this.service.updatePOLinePrice(poId, lineId, dto.unitPrice, user.id, req.ip);
     return { data };
   }
 
@@ -257,5 +282,18 @@ export class ProcurementController {
   ) {
     const data = await this.service.reconcileOrder(poId, user.id, req.ip);
     return { data };
+  }
+
+  // ── Export (enforces admin export-permission policy) ─────────────────
+
+  @Get('export')
+  async exportProcurementData(@CurrentUser() user: AuthUser) {
+    const allowed = await this.adminService.canExport(user.role, 'procurement');
+    if (!allowed) {
+      throw new ForbiddenException('Export not permitted for your role in procurement scope');
+    }
+    const requests = await this.service.getRequests(user);
+    const orders = await this.service.getPOs();
+    return { data: { requests, orders, exportedAt: new Date().toISOString() } };
   }
 }

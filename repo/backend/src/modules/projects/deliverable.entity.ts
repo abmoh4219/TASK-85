@@ -20,13 +20,13 @@ export class Deliverable {
   @Column({ name: 'submitted_by_id' })
   submittedById: string;
 
-  @Column({ length: 300 })
+  @Column({ length: 512, transformer: aesTransformer })
   title: string;
 
   @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
-  @Column({ name: 'file_url', type: 'text', nullable: true })
+  @Column({ name: 'file_url', type: 'text', nullable: true, transformer: aesTransformer })
   fileUrl: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

@@ -3,6 +3,7 @@ import {
   CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany,
 } from 'typeorm';
 import { LabReportVersion } from './lab-report-version.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum ReportStatus {
   DRAFT = 'draft',
@@ -24,7 +25,7 @@ export class LabReport {
   @Column({ type: 'enum', enum: ReportStatus, default: ReportStatus.DRAFT })
   status: ReportStatus;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   summary: string | null;
 
   @Column({ name: 'created_by_id' })

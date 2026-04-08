@@ -18,7 +18,7 @@ export class LearningPlan {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 300 })
+  @Column({ length: 512, transformer: aesTransformer })
   title: string;
 
   @Column({ type: 'text', nullable: true, transformer: aesTransformer })
@@ -33,7 +33,7 @@ export class LearningPlan {
   @Column({ type: 'enum', enum: LearningPlanStatus, default: LearningPlanStatus.NOT_STARTED })
   status: LearningPlanStatus;
 
-  @Column({ name: 'target_role', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'target_role', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   targetRole: string | null;
 
   @Column({ name: 'start_date', type: 'timestamptz', nullable: true })

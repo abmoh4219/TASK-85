@@ -324,9 +324,16 @@ export class LabService {
     return this.reportRepo.findOne({ where: { id: reportId }, relations: ['versions'] }) as Promise<LabReport>;
   }
 
-  async getReportHistory(reportId: string): Promise<LabReportVersion[]> {
+  async getReportHistory(reportId: string, user?: { id: string; role: UserRole }): Promise<LabReportVersion[]> {
     const report = await this.reportRepo.findOne({ where: { id: reportId } });
     if (!report) throw new NotFoundException('Report not found');
+    // Object-level auth: check sample ownership for employees
+    if (user && user.role === UserRole.EMPLOYEE) {
+      const sample = await this.sampleRepo.findOne({ where: { id: report.sampleId } });
+      if (sample && sample.submittedById !== user.id) {
+        throw new ForbiddenException('You do not have access to this report');
+      }
+    }
     return this.versionRepo.find({
       where: { reportId },
       order: { versionNumber: 'DESC' },
@@ -354,12 +361,19 @@ export class LabService {
     return report;
   }
 
-  async getReport(reportId: string): Promise<LabReport> {
+  async getReport(reportId: string, user?: { id: string; role: UserRole }): Promise<LabReport> {
     const report = await this.reportRepo.findOne({
       where: { id: reportId },
       relations: ['versions'],
     });
     if (!report) throw new NotFoundException('Report not found');
+    // Object-level auth: check sample ownership for employees
+    if (user && user.role === UserRole.EMPLOYEE) {
+      const sample = await this.sampleRepo.findOne({ where: { id: report.sampleId } });
+      if (sample && sample.submittedById !== user.id) {
+        throw new ForbiddenException('You do not have access to this report');
+      }
+    }
     return report;
   }
 }

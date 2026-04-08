@@ -26,7 +26,7 @@ export class LabSample {
   @Column({ name: 'patient_identifier', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   patientIdentifier: string | null;
 
-  @Column({ name: 'sample_type', length: 100 })
+  @Column({ name: 'sample_type', length: 512, transformer: aesTransformer })
   sampleType: string;
 
   @Column({ name: 'collection_date', type: 'timestamptz' })

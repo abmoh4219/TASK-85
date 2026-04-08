@@ -3,6 +3,7 @@ import {
   CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn,
 } from 'typeorm';
 import { POReceiptLine } from './po-receipt-line.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum ReceiptStatus {
   PENDING = 'pending',
@@ -28,7 +29,7 @@ export class POReceipt {
   @Column({ name: 'received_at', type: 'timestamptz', default: () => 'NOW()' })
   receivedAt: Date;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @OneToMany(() => POReceiptLine, (line) => line.receipt, { cascade: true })

@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { PurchaseOrder } from './purchase-order.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum ReconciliationStatus {
   PENDING = 'pending',
@@ -32,7 +33,7 @@ export class Reconciliation {
   @Column({ type: 'jsonb', nullable: true })
   discrepancies: Record<string, unknown>[] | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

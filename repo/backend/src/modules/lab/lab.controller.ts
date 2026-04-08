@@ -9,8 +9,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
-import { SampleStatus } from './lab-sample.entity';
 import { CreateSampleDto } from './dto/create-sample.dto';
+import { AdvanceSampleStatusDto } from './dto/advance-sample-status.dto';
 import { SubmitResultsDto } from './dto/submit-results.dto';
 import { CreateReportDto } from './dto/create-report.dto';
 import { EditReportDto } from './dto/edit-report.dto';
@@ -79,10 +79,10 @@ export class LabController {
   @HttpCode(HttpStatus.OK)
   async advanceSampleStatus(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('status') status: SampleStatus,
+    @Body() dto: AdvanceSampleStatusDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.advanceSampleStatus(id, status, user.id);
+    const data = await this.service.advanceSampleStatus(id, dto.status, user.id);
     return { data };
   }
 
@@ -115,8 +115,8 @@ export class LabController {
   }
 
   @Get('reports/:id')
-  async getReport(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.service.getReport(id);
+  async getReport(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getReport(id, user);
     return { data };
   }
 
@@ -134,8 +134,8 @@ export class LabController {
   }
 
   @Get('reports/:id/history')
-  async getReportHistory(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.service.getReportHistory(id);
+  async getReportHistory(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser) {
+    const data = await this.service.getReportHistory(id, user);
     return { data };
   }
 

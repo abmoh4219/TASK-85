@@ -2,6 +2,7 @@ import {
   Entity, PrimaryGeneratedColumn, Column,
   CreateDateColumn, UpdateDateColumn, Index,
 } from 'typeorm';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum AnomalyEventType {
   RATE_LIMIT_EXCEEDED = 'rate_limit_exceeded',
@@ -36,13 +37,13 @@ export class AnomalyEvent {
   @Column({ type: 'enum', enum: AnomalyEventStatus, default: AnomalyEventStatus.PENDING })
   status: AnomalyEventStatus;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', transformer: aesTransformer })
   description: string;
 
-  @Column({ name: 'ip_address', type: 'varchar', length: 45, nullable: true })
+  @Column({ name: 'ip_address', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   ipAddress: string | null;
 
-  @Column({ name: 'request_path', type: 'varchar', length: 500, nullable: true })
+  @Column({ name: 'request_path', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   requestPath: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -54,7 +55,7 @@ export class AnomalyEvent {
   @Column({ name: 'reviewed_at', type: 'timestamptz', nullable: true })
   reviewedAt: Date | null;
 
-  @Column({ name: 'review_notes', type: 'text', nullable: true })
+  @Column({ name: 'review_notes', type: 'text', nullable: true, transformer: aesTransformer })
   reviewNotes: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

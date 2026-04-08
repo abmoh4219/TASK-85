@@ -36,7 +36,7 @@ import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 10,
+        limit: 60, // Global default: generous for non-sensitive reads
       },
     ]),
     ScheduleModule.forRoot(),

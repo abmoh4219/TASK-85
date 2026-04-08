@@ -3,25 +3,26 @@ import {
   CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany,
 } from 'typeorm';
 import { ReferenceRange } from './reference-range.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('lab_test_dictionaries')
 export class LabTestDictionary {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 200 })
+  @Column({ length: 512, transformer: aesTransformer })
   name: string;
 
   @Column({ name: 'test_code', length: 50, unique: true })
   testCode: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
-  @Column({ name: 'sample_type', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'sample_type', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   sampleType: string | null;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   unit: string | null;
 
   @Column({ name: 'is_active', default: true })

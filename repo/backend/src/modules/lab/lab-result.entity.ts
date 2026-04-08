@@ -40,7 +40,7 @@ export class LabResult {
   @Column({ name: 'entered_by_id' })
   enteredById: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

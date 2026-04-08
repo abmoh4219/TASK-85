@@ -2,6 +2,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
 import { maskId } from '@/lib/mask-id';
+import { PageLoader } from '@/components/shared/LoadingSpinner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { FileText } from 'lucide-react';
 
 export function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,13 +19,13 @@ export function RequestDetailPage() {
   });
 
   if (isLoading) {
-    return <div className="p-6 text-muted-foreground">Loading request...</div>;
+    return <PageLoader />;
   }
 
   const request = requests?.find((r: { id: string }) => r.id === id);
 
   if (!request) {
-    return <div className="p-6 text-destructive">Purchase request not found.</div>;
+    return <div className="p-6"><EmptyState icon={FileText} title="Purchase request not found" /></div>;
   }
 
   return (

@@ -5,6 +5,7 @@ import {
 import { RFQ } from './rfq.entity';
 import { Item } from '../inventory/item.entity';
 import { VendorQuote } from './vendor-quote.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('rfq_lines')
 export class RFQLine {
@@ -28,7 +29,7 @@ export class RFQLine {
   @Column({ type: 'decimal', precision: 12, scale: 4 })
   quantity: number;
 
-  @Column({ name: 'unit_of_measure', length: 50 })
+  @Column({ name: 'unit_of_measure', length: 512, transformer: aesTransformer })
   unitOfMeasure: string;
 
   @OneToMany(() => VendorQuote, (q) => q.rfqLine, { cascade: true })

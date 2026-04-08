@@ -9,6 +9,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireAction } from '../../common/decorators/require-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { UpdatePolicyDto } from './dto/update-policy.dto';
 
 type AuthUser = { id: string; role: UserRole };
 
@@ -35,10 +36,10 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   async updatePolicy(
     @Param('key') key: string,
-    @Body('value') value: Record<string, unknown>,
+    @Body() dto: UpdatePolicyDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.updatePolicy(key, value, user.id);
+    const data = await this.service.updatePolicy(key, dto.value, user.id);
     return { data };
   }
 }

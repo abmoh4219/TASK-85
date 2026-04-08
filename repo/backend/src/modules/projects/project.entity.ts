@@ -19,7 +19,7 @@ export class Project {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 300 })
+  @Column({ length: 512, transformer: aesTransformer })
   title: string;
 
   @Column({ type: 'text', nullable: true, transformer: aesTransformer })

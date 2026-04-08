@@ -5,7 +5,8 @@
 docker compose up --build
 ```
 Frontend: https://localhost:3000 (self-signed cert — accept browser warning)
-Backend API: https://localhost:3000/api (proxied through nginx)
+Backend API: https://localhost:4000 (direct, self-signed cert)
+Backend Health: https://localhost:4000/health
 
 ## Test
 ```bash

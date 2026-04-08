@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, Index,
 } from 'typeorm';
 import { Item } from './item.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum AlertType {
   SAFETY_STOCK = 'safety_stock',
@@ -46,7 +47,7 @@ export class Alert {
   @Column({ type: 'enum', enum: AlertStatus, default: AlertStatus.ACTIVE })
   status: AlertStatus;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', transformer: aesTransformer })
   message: string;
 
   @Column({ type: 'jsonb', nullable: true })

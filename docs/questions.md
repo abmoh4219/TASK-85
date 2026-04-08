@@ -21,7 +21,7 @@
 
 **My Understanding:** The prompt uses the phrase "if captured" — this is a conditional constraint, not a mandatory feature. The requirement is to implement the masking architecture and export policy controls so that IF biometric data were ever integrated, the system handles it correctly.
 
-**Solution Implemented:** A `BiometricIdentifier` entity is created with a `templateHash` field (non-reconstructable, one-way). The UI enforces last-4-character masking on any field flagged as `sensitiveIdentifier: true`. The admin export policy controls which fields are exportable per role. No actual biometric capture hardware integration is implemented — the hook is clearly documented and ready for integration.
+**Solution Implemented:** No biometric capture is implemented in this build — the prompt uses "if captured" language. The masking architecture is in place: a central `maskId()` helper enforces last-4-character masking on all identifiers shown in the UI (procurement IDs, item IDs, sample IDs, etc.). The admin export-permission policy controls which fields are exportable per role. The system is architecturally ready for biometric integration via a future entity if needed — documented as out of scope for this delivery.
 
 ---
 
@@ -31,7 +31,7 @@
 
 **My Understanding:** "Within a site" means within a single on-premise deployment (one docker-compose stack = one hospital/clinic). A-B comparison means some users within the same deployment get rule version A, others get rule version B.
 
-**Solution Implemented:** The rules engine A-B rollout assigns users to group A or group B based on `userId % 2` (deterministic, reproducible). The rollout percentage is configurable (e.g., 50% gets new rule, 50% gets old). All within a single site deployment. Multi-site federation is explicitly out of scope and documented as a future extension point.
+**Solution Implemented:** The rules engine A-B rollout assigns users to a group deterministically using a hash of `userId:ruleId` modulo 100, compared against the configurable `rolloutPercentage`. This ensures consistent assignment (same user always gets the same group for the same rule) while distributing evenly across the population. The `evaluateRuleForUser` service method returns whether a user is in the active group and the applicable rule definition. All within a single site deployment. Multi-site federation is explicitly out of scope.
 
 ---
 
@@ -49,9 +49,9 @@
 
 **Question:** The prompt says refresh tokens are "stored server-side for offline control" but does not specify where the client stores the access token. LocalStorage is vulnerable to XSS; httpOnly cookies have CSRF risks. What is the correct approach for an on-premise React app?
 
-**My Understanding:** The access token (15min, short-lived) should be stored in memory only — never in localStorage. The refresh token should be stored in an httpOnly, SameSite=Strict cookie to prevent XSS access while remaining usable for the refresh flow.
+**My Understanding:** The access token (15min, short-lived) should be stored in memory. The refresh token needs to persist across page reloads. In an on-premise SPA with CSP/Helmet protections, localStorage is a pragmatic choice; httpOnly cookies are an alternative with CSRF tradeoffs.
 
-**Solution Implemented:** Access token stored in React AuthContext memory only (lost on page refresh, then auto-refreshed via the httpOnly refresh token cookie). Refresh token set as httpOnly + SameSite=Strict + Secure cookie by the backend. On page load, the app calls GET /auth/me — if a valid refresh token cookie exists, a new access token is issued automatically giving seamless UX without LocalStorage token exposure.
+**Solution Implemented:** Access token is stored in the Axios client's default Authorization header (in-memory). Refresh token is stored in localStorage with the user ID, used by the auto-refresh interceptor to obtain new access tokens on 401 responses. The refresh token is hashed server-side (bcrypt) and rotated on each use. This is a pragmatic tradeoff for an on-premise SPA where XSS risk is controlled by CSP headers and Helmet middleware. A future enhancement could migrate to httpOnly cookies with CSRF mitigation.
 
 ---
 
@@ -61,7 +61,7 @@
 
 **My Understanding:** A PO with partial delivery should remain in "partially-received" status until all lines are fulfilled or explicitly closed. Reconciliation should be possible on received portions independently.
 
-**Solution Implemented:** PO status enum includes: `draft`, `approved`, `sent`, `partially-received`, `fully-received`, `partially-reconciled`, `reconciled`, `closed`. Each POLine has its own status. Reconciliation can be triggered per-line or for all received lines. Backorders can be explicitly closed by a Supervisor, which moves the PO to `closed` even if not fully received.
+**Solution Implemented:** PO status enum: `draft`, `approved`, `sent`, `partially_received`, `received`, `cancelled`. Each POLine tracks `receivedQuantity` and `backorderQuantity`. Reconciliation is performed at the PO level via `POST /procurement/orders/:id/reconcile`, comparing ordered vs received quantities and flagging discrepancies. The system updates PO status to `partially_received` when some lines are fulfilled, and `received` when all are complete.
 
 ---
 
@@ -81,7 +81,7 @@
 
 **My Understanding:** The system cannot block a user from working if they haven't completed study sessions — that would be disruptive in a hospital setting. Enforcement means tracking compliance and generating notifications when the target is not met.
 
-**Solution Implemented:** StudyFrequencyRule stored as `{ sessionsPerWeek: number, windowType: 'calendar-week' }`. The LearningService calculates weekly compliance. If compliance < 1.0 at end of week, a `STUDY_FREQUENCY_BREACH` notification is created for the employee and their supervisor. HR dashboard shows compliance rate per plan. No access blocking — compliance reporting and notifications only.
+**Solution Implemented:** Each LearningGoal stores a `sessionsPerWeek` integer column. The `GET /learning/goals/:id/compliance` endpoint calculates weekly compliance by counting study sessions in the past 7 days against the target. Returns `sessionsThisWeek`, `targetSessionsPerWeek`, `isBelowTarget`, and `compliancePercent`. HR/admin can view compliance for any plan; employees see only their own. No automated notification generation for frequency breaches in this build — compliance is query-based and visible in the learning detail UI.
 
 ---
 
@@ -91,7 +91,7 @@
 
 **My Understanding:** "Hot update" means the rule change takes effect for new requests immediately after activation, without restarting the NestJS process or Docker container. Existing in-flight requests complete with the old rule; new requests use the new rule.
 
-**Solution Implemented:** Business rules are loaded from the DB with a 30-second in-memory cache. When a rule is activated, the cache is immediately invalidated. The next request fetches the new version from DB. No process restart required. The rollback follows the same cache invalidation pattern and completes the DB transaction + cache invalidation in under 5 minutes (typically under 1 second).
+**Solution Implemented:** Business rules are loaded directly from the DB on each request via the RulesEngineService. When a rule is activated or rolled back, the change is persisted immediately in a DB transaction. The next request reads the updated state. No process restart required. Rollback uses an atomic DB transaction and enforces a 5-minute time limit (throws 400 if exceeded).
 
 ---
 
@@ -101,7 +101,7 @@
 
 **My Understanding:** Disk-level encryption is an infrastructure concern that cannot be fully demonstrated in a docker-compose submission. Column-level encryption in the application layer using TypeORM column transformers with AES-256 is the implementable requirement — this is what "per-environment keys" refers to.
 
-**Solution Implemented:** Sensitive columns use TypeORM column transformers that encrypt on write and decrypt on read using AES-256-GCM with a key from the `ENCRYPTION_KEY` environment variable (provided in docker-compose with a default dev key). The encryption key is never logged or exposed via API. Production deployments replace the key via environment variable — no code changes required.
+**Solution Implemented:** Sensitive columns use TypeORM column transformers that encrypt on write and decrypt on read using AES-256-CBC with a random IV per write. The key is derived from the `ENCRYPTION_KEY` environment variable (required, no fallback — app fails to start without it). Encrypted fields: patient identifiers, clinical notes, lab result text values, vendor contact info, purchase request justifications, PO notes, project descriptions, learning plan descriptions, goal descriptions, deliverable descriptions, and acceptance score feedback. The encryption key is never logged or exposed via API. For full disk-level at-rest protection, production deployments should additionally enable volume-level encryption (LUKS/dm-crypt or cloud provider disk encryption).
 
 ---
 
@@ -111,7 +111,7 @@
 
 **My Understanding:** Nonces need to be stored temporarily to detect reuse. For an on-premise system with PostgreSQL available, a `UsedNonce` table with a TTL-based cleanup is appropriate. The timestamp window should be tight enough to prevent replay but loose enough to tolerate minor clock skew — 5 minutes is the standard.
 
-**Solution Implemented:** A `UsedNonce` table stores (nonce, userId, usedAt). On each sensitive write request, the middleware checks: (1) timestamp within ±5 minutes of server time, (2) nonce not already in UsedNonce table. If both pass, nonce is inserted. A cleanup job runs hourly to delete nonces older than 10 minutes. This prevents replay while keeping the table small.
+**Solution Implemented:** A `used_nonces` table stores (nonce, user_id, created_at). On each sensitive write request (POST/PATCH/DELETE), the nonce middleware checks: (1) timestamp within ±5 minutes of server time, (2) nonce not already in the table for that user. If both pass, nonce is inserted. Stale nonces are cleaned up asynchronously after each request (DELETE WHERE created_at < cutoff). User ID is extracted from the JWT Authorization header directly in the middleware (pre-guard phase) for proper per-user scoping. Auth endpoints (login/refresh/logout) are exempt from the nonce requirement but still validate nonce if provided.
 
 ---
 
@@ -121,4 +121,4 @@
 
 **My Understanding:** Both patterns make sense in a medical supply context. Pre-approved substitutes (in the item catalog, configured by Admin) are safer for routine items. Case-by-case approval by Supervisor makes sense for non-routine situations. The prompt says "approved substitutes" which implies a formal approval process.
 
-**Solution Implemented:** Two-tier substitute system: (1) Admin can configure pre-approved substitutes in the item catalog (`ItemSubstitute` table with `approvedBy: admin`). (2) When a PR item is unavailable, the system suggests pre-approved substitutes automatically. If no pre-approved substitute exists, a Supervisor can approve a case-by-case substitute on the PR line (`substituteApproval` workflow). Both paths are tracked in audit log.
+**Solution Implemented:** Case-by-case substitute approval on purchase request items. When an item is unavailable, an admin can approve a substitute via `POST /procurement/requests/:id/substitute` by specifying `purchaseRequestItemId` and `substituteItemId`. The substitution is recorded on the PurchaseRequestItem and tracked in the audit log. Pre-approved catalog-level substitutes are not implemented in this build — this is a future enhancement that would add an `ItemSubstitute` join table.

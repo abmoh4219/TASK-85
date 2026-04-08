@@ -1,39 +1,45 @@
 import {
-  Controller, Get, Patch, Param, Body, Query, Request,
+  Controller, Get, Patch, Param, Body, Query, ParseUUIDPipe, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
 import { AnomalyEventStatus } from './anomaly-event.entity';
+import { ReviewAnomalyDto } from './dto/review-anomaly.dto';
+
+type AuthUser = { id: string; role: UserRole };
 
 @Controller()
 export class NotificationsController {
   constructor(private readonly svc: NotificationsService) {}
 
   @Get('notifications')
-  async getMyNotifications(@Request() req: { user: { id: string } }) {
-    const data = await this.svc.getForUser(req.user.id);
+  async getMyNotifications(@CurrentUser() user: AuthUser) {
+    const data = await this.svc.getForUser(user.id);
     return { data };
   }
 
   @Get('notifications/unread-count')
-  async getUnreadCount(@Request() req: { user: { id: string } }) {
-    const count = await this.svc.getUnreadCount(req.user.id);
+  async getUnreadCount(@CurrentUser() user: AuthUser) {
+    const count = await this.svc.getUnreadCount(user.id);
     return { data: { count } };
   }
 
   @Patch('notifications/:id/read')
+  @HttpCode(HttpStatus.OK)
   async markRead(
-    @Param('id') id: string,
-    @Request() req: { user: { id: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.svc.markRead(id, req.user.id);
+    const data = await this.svc.markRead(id, user.id);
     return { data };
   }
 
   @Patch('notifications/read-all')
-  async markAllRead(@Request() req: { user: { id: string } }) {
-    await this.svc.markAllRead(req.user.id);
+  @HttpCode(HttpStatus.OK)
+  async markAllRead(@CurrentUser() user: AuthUser) {
+    await this.svc.markAllRead(user.id);
     return { data: { success: true } };
   }
 
@@ -46,12 +52,13 @@ export class NotificationsController {
 
   @Patch('anomalies/:id/review')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  @HttpCode(HttpStatus.OK)
   async reviewAnomaly(
-    @Param('id') id: string,
-    @Body() body: { notes?: string; status?: AnomalyEventStatus },
-    @Request() req: { user: { id: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReviewAnomalyDto,
+    @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.svc.reviewAnomaly(id, req.user.id, body.notes, body.status);
+    const data = await this.svc.reviewAnomaly(id, user.id, dto.notes, dto.status);
     return { data };
   }
 }

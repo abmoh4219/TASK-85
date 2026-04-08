@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { LearningPlan } from './learning-plan.entity';
 import { StudySession } from './study-session.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum GoalPriority {
   LOW = 'low',
@@ -23,10 +24,10 @@ export class LearningGoal {
   @JoinColumn({ name: 'plan_id' })
   plan: LearningPlan;
 
-  @Column({ length: 300 })
+  @Column({ length: 512, transformer: aesTransformer })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
   @Column({ type: 'enum', enum: GoalPriority, default: GoalPriority.MEDIUM })
@@ -35,7 +36,7 @@ export class LearningGoal {
   @Column({ type: 'simple-array', nullable: true })
   tags: string[] | null;
 
-  @Column({ name: 'study_frequency_rule', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'study_frequency_rule', type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   studyFrequencyRule: string | null;
 
   @Column({ name: 'sessions_per_week', type: 'int', nullable: true })

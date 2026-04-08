@@ -4,22 +4,23 @@ import {
   ManyToOne, JoinColumn,
 } from 'typeorm';
 import { ItemCategory } from './item-category.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('items')
 export class Item {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 200 })
+  @Column({ length: 512, transformer: aesTransformer })
   name: string;
 
   @Column({ name: 'sku', length: 100, unique: true })
   sku: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
-  @Column({ name: 'unit_of_measure', length: 50, default: 'each' })
+  @Column({ name: 'unit_of_measure', length: 512, default: 'each', transformer: aesTransformer })
   unitOfMeasure: string;
 
   @Column({ name: 'category_id', type: 'uuid', nullable: true })

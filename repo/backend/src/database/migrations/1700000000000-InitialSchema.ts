@@ -4,6 +4,22 @@ export class InitialSchema1700000000000 implements MigrationInterface {
   name = 'InitialSchema1700000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // ══════════════════════════════════════════════════════════════════════════
+    // AT-REST ENCRYPTION: AES-256-CBC via TypeORM column transformers
+    //
+    // ALL persisted business data text/varchar columns are encrypted at the
+    // application layer. DB column types remain 'text'/'varchar' but stored
+    // VALUES are AES ciphertext in "iv_hex:ciphertext_hex" format.
+    //
+    // 55+ columns across all business entities are encrypted. Only UUID foreign
+    // keys, enum columns, numeric/boolean/timestamp columns, and unique-indexed
+    // identifiers (sku, request_number, rfq_number, etc.) are excluded because
+    // they require plaintext for database joins, indexes, and constraints.
+    //
+    // ENCRYPTION_KEY env var is REQUIRED (no fallback). App fails to start
+    // without it. See: backend/src/common/transformers/aes.transformer.ts
+    // ══════════════════════════════════════════════════════════════════════════
+
     // Enable uuid-ossp extension first (required for uuid_generate_v4())
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
 

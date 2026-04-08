@@ -3,6 +3,7 @@ import {
   CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany,
 } from 'typeorm';
 import { RuleVersion } from './rule-version.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum RuleStatus {
   DRAFT = 'draft',
@@ -25,10 +26,10 @@ export class BusinessRule {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 200 })
+  @Column({ length: 512, transformer: aesTransformer })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
   @Column({ type: 'enum', enum: RuleCategory, default: RuleCategory.CUSTOM })

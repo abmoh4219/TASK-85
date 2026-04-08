@@ -183,15 +183,18 @@ export class LearningService {
     return session;
   }
 
-  async checkFrequencyCompliance(goalId: string): Promise<{
+  async checkFrequencyCompliance(goalId: string, user?: { id: string; role: UserRole }): Promise<{
     goal: LearningGoal;
     sessionsThisWeek: number;
     targetSessionsPerWeek: number | null;
     isBelowTarget: boolean;
     compliancePercent: number | null;
   }> {
-    const goal = await this.goalRepo.findOne({ where: { id: goalId } });
+    const goal = await this.goalRepo.findOne({ where: { id: goalId }, relations: ['plan'] });
     if (!goal) throw new NotFoundException('Learning goal not found');
+    if (user && user.role === UserRole.EMPLOYEE && goal.plan && goal.plan.userId !== user.id) {
+      throw new ForbiddenException('You do not have access to this learning plan');
+    }
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const sessions = await this.sessionRepo.find({

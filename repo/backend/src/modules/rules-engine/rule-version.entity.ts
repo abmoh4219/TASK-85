@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { BusinessRule } from './business-rule.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('rule_versions')
 export class RuleVersion {
@@ -22,7 +23,7 @@ export class RuleVersion {
   @Column({ type: 'jsonb' })
   definition: Record<string, unknown>;
 
-  @Column({ name: 'change_summary', type: 'text', nullable: true })
+  @Column({ name: 'change_summary', type: 'text', nullable: true, transformer: aesTransformer })
   changeSummary: string | null;
 
   @Column({ name: 'created_by_id' })

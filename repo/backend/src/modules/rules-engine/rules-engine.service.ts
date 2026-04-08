@@ -106,19 +106,20 @@ export class RulesEngineService {
   }> {
     const conflicts: Array<{ ruleId: string; name: string; reason: string }> = [];
 
-    // Check for name collision in same category
-    const sameName = await this.ruleRepo.find({
-      where: { name: dto.name, status: RuleStatus.ACTIVE },
+    // Check for name collision — fetch all active rules and compare in-memory
+    // (name column is encrypted, so SQL WHERE cannot match plaintext)
+    const activeRules = await this.ruleRepo.find({
+      where: { status: RuleStatus.ACTIVE },
     });
-    for (const r of sameName) {
-      conflicts.push({ ruleId: r.id, name: r.name, reason: 'Active rule with same name exists' });
+    for (const r of activeRules) {
+      if (r.name === dto.name) {
+        conflicts.push({ ruleId: r.id, name: r.name, reason: 'Active rule with same name exists' });
+      }
     }
 
     // Check for category conflicts if definition has threshold field
     if (dto.definition?.threshold !== undefined && dto.category) {
-      const sameCategory = await this.ruleRepo.find({
-        where: { category: dto.category, status: RuleStatus.ACTIVE },
-      });
+      const sameCategory = activeRules.filter((r) => r.category === dto.category);
       for (const r of sameCategory) {
         const versions = await this.versionRepo.find({
           where: { ruleId: r.id, versionNumber: r.currentVersion },
@@ -146,26 +147,59 @@ export class RulesEngineService {
     rule: BusinessRule;
     affectedWorkflows: string[];
     estimatedImpact: string;
+    definitionDiff: { field: string; previous: unknown; current: unknown }[];
   }> {
     const rule = await this.ruleRepo.findOne({ where: { id }, relations: ['versions'] });
     if (!rule) throw new NotFoundException('Rule not found');
 
-    const workflowMap: Record<RuleCategory, string[]> = {
-      [RuleCategory.PROCUREMENT_THRESHOLD]: ['Purchase Request Approval', 'PO Issuance', 'RFQ Generation'],
-      [RuleCategory.CANCELLATION]:          ['Purchase Order Cancellation', 'Sample Cancellation'],
-      [RuleCategory.PRICING]:               ['PO Line Price Lock', 'Quote Comparison'],
-      [RuleCategory.PARSING]:               ['Data Import', 'Report Generation'],
-      [RuleCategory.INVENTORY]:             ['Safety Stock Alerts', 'Replenishment Recommendations'],
-      [RuleCategory.CUSTOM]:                ['Custom Workflow'],
+    // Compute affected workflows from the actual rule definition keys.
+    // Each definition key maps to specific workflows/endpoints it affects.
+    const keyToWorkflows: Record<string, string[]> = {
+      threshold:               ['Purchase Request Approval', 'PO Issuance'],
+      maxApprovalAmount:       ['Purchase Request Auto-Approval', 'RFQ Generation'],
+      priceLockDays:           ['PO Line Price Lock', 'PO Approval'],
+      safetyStockMultiplier:   ['Safety Stock Alert Calculation', 'Inventory Alerts'],
+      expiryWarningDays:       ['Near-Expiration Alert Window', 'Inventory Alerts'],
+      consumptionMultiplier:   ['Abnormal Consumption Detection', 'Inventory Alerts'],
+      bufferDays:              ['Replenishment Buffer Calculation', 'Replenishment Recommendations'],
+      leadTimeDays:            ['Replenishment Lead Time', 'Replenishment Recommendations'],
+      cancellationWindow:      ['Purchase Order Cancellation', 'Sample Cancellation'],
+      parsingFormat:           ['Data Import', 'Report Generation'],
+      quoteValidityDays:       ['Quote Comparison', 'RFQ Evaluation'],
+      minQuotes:               ['RFQ Evaluation', 'PO Issuance'],
     };
-
-    const affectedWorkflows = workflowMap[rule.category] ?? ['Unknown'];
+    const currentVersion = (rule.versions ?? []).find((v) => v.versionNumber === rule.currentVersion);
+    const defKeys = Object.keys(currentVersion?.definition ?? {});
+    const workflows = new Set<string>();
+    for (const key of defKeys) {
+      const mapped = keyToWorkflows[key];
+      if (mapped) mapped.forEach((w) => workflows.add(w));
+    }
+    // If no keys match specific workflows, derive from category as fallback context
+    if (workflows.size === 0) {
+      workflows.add(`${rule.category} workflow`);
+    }
+    const affectedWorkflows = [...workflows];
     const estimatedImpact =
       rule.rolloutPercentage < 100
         ? `A/B test: ${rule.rolloutPercentage}% of traffic affected`
         : 'Full rollout: all users affected';
 
-    return { rule, affectedWorkflows, estimatedImpact };
+    // Compute concrete diff between current and previous version definitions
+    const sorted = [...(rule.versions ?? [])].sort((a, b) => b.versionNumber - a.versionNumber);
+    const currentDef = sorted.find((v) => v.versionNumber === rule.currentVersion)?.definition ?? {};
+    const previousDef = sorted.find((v) => v.versionNumber === rule.currentVersion - 1)?.definition ?? {};
+    const allKeys = new Set([...Object.keys(currentDef), ...Object.keys(previousDef)]);
+    const definitionDiff: { field: string; previous: unknown; current: unknown }[] = [];
+    for (const key of allKeys) {
+      const prev = previousDef[key];
+      const curr = currentDef[key];
+      if (JSON.stringify(prev) !== JSON.stringify(curr)) {
+        definitionDiff.push({ field: key, previous: prev ?? null, current: curr ?? null });
+      }
+    }
+
+    return { rule, affectedWorkflows, estimatedImpact, definitionDiff };
   }
 
   // ── Staged Rollout ────────────────────────────────────────────────────────

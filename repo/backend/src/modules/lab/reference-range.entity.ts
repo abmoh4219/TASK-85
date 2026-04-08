@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn,
 } from 'typeorm';
 import { LabTestDictionary } from './lab-test-dictionary.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('reference_ranges')
 export class ReferenceRange {
@@ -16,7 +17,7 @@ export class ReferenceRange {
   @JoinColumn({ name: 'test_id' })
   test: LabTestDictionary;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 512, nullable: true, transformer: aesTransformer })
   population: string | null;
 
   @Column({ name: 'min_value', type: 'decimal', precision: 12, scale: 4, nullable: true })
