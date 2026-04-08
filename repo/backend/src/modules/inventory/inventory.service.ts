@@ -420,6 +420,14 @@ export class InventoryService {
     const reco = await this.recoRepo.findOne({ where: { id } });
     if (!reco) throw new NotFoundException('Recommendation not found');
 
+    // Idempotency: only record one impression per user per recommendation
+    const existing = await this.feedbackRepo.findOne({
+      where: { recommendationId: id, userId, type: FeedbackType.IMPRESSION },
+    });
+    if (existing) {
+      return { recorded: false, deduplicated: true };
+    }
+
     await this.feedbackRepo.save(
       this.feedbackRepo.create({ recommendationId: id, userId, type: FeedbackType.IMPRESSION }),
     );

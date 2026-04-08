@@ -4,6 +4,7 @@ import {
   OneToMany, ManyToOne, JoinColumn,
 } from 'typeorm';
 import { POLine } from './po-line.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum POStatus {
   DRAFT = 'draft',
@@ -46,7 +47,7 @@ export class PurchaseOrder {
   @Column({ name: 'total_amount', type: 'decimal', precision: 14, scale: 4, default: 0 })
   totalAmount: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   notes: string | null;
 
   @OneToMany(() => POLine, (line) => line.purchaseOrder, { cascade: true })

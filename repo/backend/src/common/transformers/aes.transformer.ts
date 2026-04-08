@@ -5,7 +5,13 @@ const IV_LENGTH = 16;
 const KEY_LENGTH = 32;
 
 function getKey(): Buffer {
-  const raw = process.env.ENCRYPTION_KEY || 'default_32_char_encryption_key!!';
+  const raw = process.env.ENCRYPTION_KEY;
+  if (!raw || raw.length < 16) {
+    throw new Error(
+      'ENCRYPTION_KEY environment variable is required and must be at least 16 characters. ' +
+      'Set it in docker-compose.yml or your environment before starting the application.',
+    );
+  }
   // Derive a 32-byte key deterministically from the env var
   return crypto.createHash('sha256').update(raw).digest().slice(0, KEY_LENGTH);
 }
@@ -28,8 +34,19 @@ export function decrypt(ciphertext: string): string {
 }
 
 /**
- * TypeORM column transformer for AES-256-CBC encryption.
- * Usage: @Column({ transformer: aesTransformer })
+ * TypeORM column transformer for AES-256-CBC encryption at rest.
+ * Applied to all sensitive persisted business data columns.
+ * Key is derived from ENCRYPTION_KEY env var (required, no fallback).
+ *
+ * Encrypted fields inventory:
+ * - lab_samples.patient_identifier, lab_samples.notes
+ * - lab_results.text_value
+ * - vendors.contact_name, vendors.email, vendors.phone
+ * - purchase_requests.justification
+ * - learning_plans.description
+ * - deliverables.description
+ * - purchase_orders.notes
+ * - projects.description
  */
 export const aesTransformer = {
   to(value: string | null | undefined): string | null {

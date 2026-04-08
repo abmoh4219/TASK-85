@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
@@ -75,12 +76,16 @@ export function ItemDetailPage() {
   const activeAlerts = (alerts ?? []).filter((a) => !a.acknowledgedAt);
   const recs = recommendations ?? [];
 
-  // Fire impressions on visible recommendations
-  if (recs.length > 0) {
+  // Fire impressions on visible recommendations — guarded to prevent render churn duplication
+  const impressionsFired = useRef<Set<string>>(new Set());
+  useEffect(() => {
     recs.forEach((r) => {
-      if (r.status === 'pending') impression.mutate(r.id);
+      if (r.status === 'pending' && !impressionsFired.current.has(r.id)) {
+        impressionsFired.current.add(r.id);
+        impression.mutate(r.id);
+      }
     });
-  }
+  }, [recs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="p-6 max-w-4xl">

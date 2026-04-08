@@ -13,6 +13,7 @@ import { ShoppingCart, Plus, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import type { PurchaseRequest } from '@/types';
+import { maskId } from '@/lib/mask-id';
 
 /** Extracted as a proper component to avoid hook-rule violations in cell callbacks */
 function RequestActions({ request }: { request: PurchaseRequest }) {
@@ -70,7 +71,7 @@ const COLUMNS: ColumnDef<PurchaseRequest>[] = [
     header: 'Request ID',
     cell: ({ row }) => (
       <span className="font-mono text-xs text-muted-foreground">
-        ...{row.original.id.slice(-8)}
+        {maskId(row.original.id)}
       </span>
     ),
     size: 120,

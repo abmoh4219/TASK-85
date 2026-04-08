@@ -4,6 +4,7 @@ import {
 } from 'typeorm';
 import { ProjectTask } from './project-task.entity';
 import { Milestone } from './milestone.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum ProjectStatus {
   INITIATION = 'initiation',
@@ -21,7 +22,7 @@ export class Project {
   @Column({ length: 300 })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
   @Column({ name: 'owner_id' })

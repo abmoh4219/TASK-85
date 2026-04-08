@@ -104,43 +104,48 @@ describe('ProcurementService — price lock', () => {
     });
   });
 
-  describe('partial delivery logic', () => {
-    it('sets PO status to PARTIALLY_RECEIVED when some but not all lines received', async () => {
+  describe('partial delivery logic via receiveOrder', () => {
+    it('transitions PO to PARTIALLY_RECEIVED after partial receipt', async () => {
+      const receiptRepo = (service as any).receiptRepo;
+      const receiptLineRepo = (service as any).receiptLineRepo;
+
+      // PO exists in APPROVED state
       poRepo.findOne.mockResolvedValue({
         id: 'po-id',
         status: POStatus.APPROVED,
         priceLockedUntil: null,
       });
 
-      const poLines = [
-        { id: 'line-1', purchaseOrderId: 'po-id', quantity: 100, receivedQuantity: 50 },
-        { id: 'line-2', purchaseOrderId: 'po-id', quantity: 50, receivedQuantity: 0 },
-      ];
+      // Receipt create/save
+      receiptRepo.create = jest.fn().mockReturnValue({ id: 'receipt-id', purchaseOrderId: 'po-id' });
+      receiptRepo.save = jest.fn().mockResolvedValue({ id: 'receipt-id' });
+      receiptRepo.findOne = jest.fn().mockResolvedValue({ id: 'receipt-id', lines: [{ id: 'rl-1' }] });
+      receiptLineRepo.create = jest.fn().mockReturnValue({ id: 'rl-1' });
+      receiptLineRepo.save = jest.fn().mockResolvedValue([{ id: 'rl-1' }]);
 
-      // After update: line-1 receives 50, so 50+50=100 (full), line-2 stays 0
+      // PO lines: line-1 needs 100, has 0 received; line-2 needs 50, has 0 received
+      const lines = [
+        { id: 'line-1', purchaseOrderId: 'po-id', quantity: 100, receivedQuantity: 0, backorderQuantity: 100 },
+        { id: 'line-2', purchaseOrderId: 'po-id', quantity: 50, receivedQuantity: 0, backorderQuantity: 50 },
+      ];
+      // After update: line-1 gets 60 (partial), line-2 still 0
       const updatedLines = [
-        { id: 'line-1', purchaseOrderId: 'po-id', quantity: 100, receivedQuantity: 100 },
-        { id: 'line-2', purchaseOrderId: 'po-id', quantity: 50, receivedQuantity: 0 },
+        { id: 'line-1', purchaseOrderId: 'po-id', quantity: 100, receivedQuantity: 60, backorderQuantity: 40 },
+        { id: 'line-2', purchaseOrderId: 'po-id', quantity: 50, receivedQuantity: 0, backorderQuantity: 50 },
       ];
+      poLineRepo.find.mockResolvedValueOnce(lines).mockResolvedValueOnce(updatedLines);
 
-      poLineRepo.find
-        .mockResolvedValueOnce(poLines)
-        .mockResolvedValueOnce(updatedLines);
+      await service.receiveOrder('po-id', {
+        notes: 'partial',
+        lines: [{ poLineId: 'line-1', receivedQuantity: 60 }],
+      }, 'user-id');
 
-      // Manually call the private method via the public receiveOrder flow
-      // We test the status logic by checking what update is called with
-      const receiptRepo = mockRepo();
-      receiptRepo.create.mockReturnValue({ id: 'receipt-id', purchaseOrderId: 'po-id', lines: [] });
-      receiptRepo.save.mockResolvedValue({ id: 'receipt-id' });
-
-      // After partial receive, PO should be PARTIALLY_RECEIVED
-      // The logic: allReceived=false (line-2 not received), anyReceived=true
-      const allReceived = updatedLines.every((l) => Number(l.receivedQuantity) >= Number(l.quantity));
-      const anyReceived = updatedLines.some((l) => Number(l.receivedQuantity) > 0);
-      expect(allReceived).toBe(false);
-      expect(anyReceived).toBe(true);
-      // Expected status: PARTIALLY_RECEIVED
-      expect(POStatus.PARTIALLY_RECEIVED).toBe('partially_received');
+      // Assert PO status was updated
+      expect(poRepo.update).toHaveBeenCalledWith('po-id', { status: POStatus.PARTIALLY_RECEIVED });
+      // Assert PO line received quantity was updated
+      expect(poLineRepo.update).toHaveBeenCalledWith('line-1', expect.objectContaining({
+        receivedQuantity: 60,
+      }));
     });
   });
 

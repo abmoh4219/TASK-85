@@ -14,6 +14,7 @@ import { ShoppingCart, ChevronLeft, Lock } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import type { PurchaseOrder } from '@/types';
+import { maskId } from '@/lib/mask-id';
 
 // ── PO List ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ export function OrdersPage() {
       accessorKey: 'id',
       header: 'PO Number',
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">...{row.original.id.slice(-8)}</span>
+        <span className="font-mono text-xs text-muted-foreground">{maskId(row.original.id)}</span>
       ),
     },
     {
@@ -209,7 +210,7 @@ export function OrderDetailPage() {
       </button>
 
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-xl font-bold text-foreground">PO ...{po.id.slice(-8)}</h1>
+        <h1 className="text-xl font-bold text-foreground">PO {maskId(po.id)}</h1>
         <StatusBadge status={po.status} />
         {po.priceLockedUntil && differenceInDays(new Date(po.priceLockedUntil), new Date()) > 0 && (
           <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
@@ -234,7 +235,7 @@ export function OrderDetailPage() {
           <tbody>
             {(po.lines ?? []).map((line) => (
               <tr key={line.id} className="border-b border-border/40 last:border-0">
-                <td className="py-2.5 font-medium">{line.item?.name ?? line.itemId.slice(-8)}</td>
+                <td className="py-2.5 font-medium">{line.item?.name ?? maskId(line.itemId)}</td>
                 <td className="py-2.5 text-right">{line.quantity}</td>
                 <td className="py-2.5 text-right font-mono">${Number(line.unitPrice).toFixed(2)}</td>
                 <td className="py-2.5 pl-3 text-muted-foreground">{line.unitOfMeasure}</td>

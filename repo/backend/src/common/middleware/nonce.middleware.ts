@@ -12,6 +12,26 @@ const EXEMPT_PATHS = [
   '/health',
 ];
 
+/**
+ * Extract user ID from JWT token in Authorization header without full auth flow.
+ * This allows user-scoped nonce protection even though middleware runs before guards.
+ */
+function extractUserIdFromToken(req: Request): string | null {
+  const auth = req.headers['authorization'];
+  if (!auth || !auth.startsWith('Bearer ')) return null;
+  try {
+    const token = auth.split(' ')[1];
+    // Decode JWT payload (base64url) without verification — just to get the sub claim
+    // Actual verification happens in JwtAuthGuard later
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1], 'base64url').toString('utf-8'),
+    );
+    return payload.sub ?? payload.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 @Injectable()
 export class NonceMiddleware implements NestMiddleware {
   constructor(private readonly dataSource: DataSource) {}
@@ -47,9 +67,8 @@ export class NonceMiddleware implements NestMiddleware {
       throw new BadRequestException('Request timestamp out of acceptable range (\u00b15 min)');
     }
 
-    // User-scoped nonce: extract user ID from JWT if available
-    const user = (req as any).user as { id?: string } | undefined;
-    const userId = user?.id ?? null;
+    // User-scoped nonce: extract user ID from JWT token (pre-auth phase)
+    const userId = extractUserIdFromToken(req);
 
     // Check for duplicate nonce in DB (scoped by user)
     try {

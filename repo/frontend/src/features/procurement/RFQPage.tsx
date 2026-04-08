@@ -14,6 +14,7 @@ import { FileText, Plus, ChevronRight, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import type { RFQ, PurchaseRequest, RFQComparison } from '@/types';
+import { maskId } from '@/lib/mask-id';
 
 // ── RFQ List ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ function RFQList() {
       accessorKey: 'id',
       header: 'RFQ ID',
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">...{row.original.id.slice(-8)}</span>
+        <span className="font-mono text-xs text-muted-foreground">{maskId(row.original.id)}</span>
       ),
     },
     {
@@ -48,7 +49,7 @@ function RFQList() {
       header: 'Request',
       cell: ({ row }) => (
         <span className="font-mono text-xs text-muted-foreground">
-          ...{row.original.purchaseRequestId.slice(-8)}
+          {maskId(row.original.purchaseRequestId)}
         </span>
       ),
     },
@@ -170,7 +171,7 @@ function CreateRFQPanel({
             <option value="">Select request…</option>
             {approvedRequests.map((r) => (
               <option key={r.id} value={r.id}>
-                ...{r.id.slice(-8)} ({r.items?.length ?? 0} items)
+                {maskId(r.id)} ({r.items?.length ?? 0} items)
               </option>
             ))}
           </select>

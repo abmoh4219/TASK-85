@@ -134,12 +134,11 @@ export function AppRouter() {
         <Route element={<AppLayout />}>
           <Route path="/rules-engine" element={wrap(<RulesEnginePage />)} />
           <Route path="/rules-engine/:id" element={wrap(<RuleDetailPage />)} />
-          <Route path="/admin/users" element={wrap(<UsersPage />)} />
           <Route path="/admin/settings" element={wrap(<SettingsPage />)} />
         </Route>
       </Route>
 
-      {/* HR admin users (read + create) */}
+      {/* Admin + HR: user management (HR has read-only access via backend) */}
       <Route element={<ProtectedRoute allowedRoles={['admin', 'hr']} />}>
         <Route element={<AppLayout />}>
           <Route path="/admin/users" element={wrap(<UsersPage />)} />

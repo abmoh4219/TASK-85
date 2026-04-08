@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
+import { maskId } from '@/lib/mask-id';
 
 export function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -64,7 +65,7 @@ export function RequestDetailPage() {
           <div className="space-y-2">
             {request.items?.map((item: { id: string; itemId: string; quantity: number; unitOfMeasure?: string }) => (
               <div key={item.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/40 last:border-0">
-                <span className="font-mono text-xs">{item.itemId.slice(0, 8)}...</span>
+                <span className="font-mono text-xs">{maskId(item.itemId)}</span>
                 <span className="font-medium">{item.quantity} {item.unitOfMeasure ?? 'units'}</span>
               </div>
             ))}

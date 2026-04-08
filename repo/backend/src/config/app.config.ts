@@ -14,7 +14,7 @@ export const appConfig = () => ({
     refreshExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '8h',
   },
   encryption: {
-    key: process.env.ENCRYPTION_KEY || 'default_32_char_encryption_key!!',
+    key: process.env.ENCRYPTION_KEY, // Required — no fallback. Set in docker-compose.yml.
   },
   throttle: {
     ttl: parseInt(process.env.THROTTLE_TTL || '60', 10),

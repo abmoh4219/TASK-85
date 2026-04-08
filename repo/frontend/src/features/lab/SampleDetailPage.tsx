@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { ChevronLeft, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import type { LabSample, LabTestDictionary, LabResult } from '@/types';
+import { maskId } from '@/lib/mask-id';
 
 export function SampleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -174,7 +175,7 @@ export function SampleDetailPage() {
                         const range = test?.referenceRanges?.[0];
                         return (
                           <tr key={r.id} className={`border-b border-border/40 last:border-0 ${r.isCritical ? 'bg-red-50 dark:bg-red-950/10' : r.isAbnormal ? 'bg-amber-50 dark:bg-amber-950/10' : ''}`}>
-                            <td className="px-4 py-2.5 font-medium">{test?.name ?? r.testId.slice(-8)}</td>
+                            <td className="px-4 py-2.5 font-medium">{test?.name ?? maskId(r.testId)}</td>
                             <td className="px-4 py-2.5 text-right font-mono">
                               {r.numericValue != null ? r.numericValue : r.textValue ?? '—'}
                               {range?.unit && <span className="text-muted-foreground ml-1 text-xs">{range.unit}</span>}
