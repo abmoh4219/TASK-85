@@ -7,6 +7,16 @@ echo "========================================"
 echo "  MeridianMed Test Suite"
 echo "========================================"
 
+# ── Environment defaults (needed when running on host outside Docker) ──
+export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dev-only-encryption-key-change-me-in-prod}"
+export JWT_SECRET="${JWT_SECRET:-dev-only-jwt-secret-do-not-use-in-production}"
+export DB_HOST="${DB_HOST:-localhost}"
+export DB_PORT="${DB_PORT:-5434}"
+export DB_NAME="${DB_NAME:-meridianmed}"
+export DB_USER="${DB_USER:-meridian}"
+export DB_PASSWORD="${DB_PASSWORD:-dev-only-password-change-in-production}"
+export NODE_ENV="${NODE_ENV:-test}"
+
 FAILED=0
 
 # ── Backend ──────────────────────────────────────────────
