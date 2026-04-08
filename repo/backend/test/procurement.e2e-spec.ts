@@ -3,8 +3,9 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
 import { nh } from './helpers/nonce.helper';
+import { seedTestUsers } from './helpers/seed-user.helper';
+import { blindIndex } from '../src/common/transformers/aes.transformer';
 
 /**
  * Full procurement flow e2e test (real PostgreSQL via docker-compose.test.yml)
@@ -53,15 +54,10 @@ describe('Procurement (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     // Seed test-scoped users
-    const hash = await bcrypt.hash('testpass123', 10);
-    await dataSource.query(
-      `INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-       VALUES
-         (uuid_generate_v4(), '${TEST_PREFIX}admin',    $1, 'admin',    true, now(), now()),
-         (uuid_generate_v4(), '${TEST_PREFIX}employee', $1, 'employee', true, now(), now())
-       ON CONFLICT (username) DO NOTHING`,
-      [hash],
-    );
+    await seedTestUsers(dataSource, [
+      { username: `${TEST_PREFIX}admin`, role: 'admin' },
+      { username: `${TEST_PREFIX}employee`, role: 'employee' },
+    ], 'testpass123');
 
     // Seed a test vendor (vendors table has no unique constraint on name, so check first)
     const existingVendor = await dataSource.query(
@@ -112,22 +108,26 @@ describe('Procurement (e2e)', () => {
   afterAll(async () => {
     // Clean up in FK-safe order
     try {
-      await dataSource.query(`DELETE FROM reconciliations WHERE purchase_order_id IN (SELECT id FROM purchase_orders WHERE po_number LIKE 'PO-%' AND created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM put_aways WHERE stored_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM po_receipt_lines WHERE receipt_id IN (SELECT id FROM po_receipts WHERE received_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM po_receipts WHERE received_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM po_lines WHERE purchase_order_id IN (SELECT id FROM purchase_orders WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM purchase_orders WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
+      const hashes = [
+        blindIndex(`${TEST_PREFIX}admin`),
+        blindIndex(`${TEST_PREFIX}employee`),
+      ];
+      await dataSource.query(`DELETE FROM reconciliations WHERE purchase_order_id IN (SELECT id FROM purchase_orders WHERE po_number LIKE 'PO-%' AND created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM put_aways WHERE stored_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM po_receipt_lines WHERE receipt_id IN (SELECT id FROM po_receipts WHERE received_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM po_receipts WHERE received_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM po_lines WHERE purchase_order_id IN (SELECT id FROM purchase_orders WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM purchase_orders WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
       await dataSource.query(`DELETE FROM vendor_quotes WHERE vendor_id = '${vendorId}'`);
-      await dataSource.query(`DELETE FROM rfq_lines WHERE rfq_id IN (SELECT id FROM rfqs WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM rfqs WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM purchase_request_items WHERE purchase_request_id IN (SELECT id FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
+      await dataSource.query(`DELETE FROM rfq_lines WHERE rfq_id IN (SELECT id FROM rfqs WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM rfqs WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM purchase_request_items WHERE purchase_request_id IN (SELECT id FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
       await dataSource.query(`DELETE FROM stock_movements WHERE item_id = '${itemId}'`);
       await dataSource.query(`DELETE FROM inventory_levels WHERE item_id = '${itemId}'`);
-      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM users WHERE username LIKE '${TEST_PREFIX}%'`);
+      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM users WHERE username_hash = ANY($1)`, [hashes]);
       await dataSource.query(`DELETE FROM items WHERE sku = '${TEST_PREFIX}SKU-001'`);
       await dataSource.query(`DELETE FROM vendors WHERE name = '${TEST_PREFIX}Vendor'`);
       await dataSource.query(`DELETE FROM item_categories WHERE name = '${TEST_PREFIX}Category'`);
@@ -424,10 +424,15 @@ describe('Procurement (e2e)', () => {
   // ── Step 15: Audit log populated ─────────────────────────────────────────
 
   it('Step 15: audit log has entries for all state transitions', async () => {
+    const auditHashes = [
+      blindIndex(`${TEST_PREFIX}admin`),
+      blindIndex(`${TEST_PREFIX}employee`),
+    ];
     const logs = await dataSource.query(
       `SELECT action, entity_type FROM audit_logs
-       WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')
+       WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))
        ORDER BY timestamp ASC`,
+      [auditHashes],
     );
 
     const actions = logs.map((l: { action: string }) => l.action);

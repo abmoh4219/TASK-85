@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -23,7 +23,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ActionGuard } from './common/guards/action.guard';
 import { AnomalyThrottlerGuard } from './common/guards/anomaly-throttler.guard';
-import { NonceMiddleware } from './common/middleware/nonce.middleware';
+import { NonceGuard } from './common/guards/nonce.guard';
 import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
 
 @Module({
@@ -35,8 +35,14 @@ import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
     WinstonModule.forRoot(winstonConfig),
     ThrottlerModule.forRoot([
       {
+        name: 'default',
         ttl: 60000,
-        limit: 60, // Global default: generous for non-sensitive reads
+        limit: 60, // Generous default for non-sensitive reads
+      },
+      {
+        name: 'sensitive',
+        ttl: 60000,
+        limit: 10, // 10 sensitive actions per minute per user (SPEC requirement)
       },
     ]),
     ScheduleModule.forRoot(),
@@ -56,15 +62,10 @@ import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
   controllers: [AppController],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: NonceGuard },      // After auth — uses verified req.user
     { provide: APP_GUARD, useClass: AnomalyThrottlerGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: ActionGuard },
   ],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(NonceMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
-  }
-}
+export class AppModule {}

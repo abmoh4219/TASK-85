@@ -1,8 +1,9 @@
 FROM node:20
 
-WORKDIR /app/backend
-
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+# Backend
+WORKDIR /app/backend
 
 COPY backend/package*.json ./
 RUN npm install
@@ -11,6 +12,17 @@ COPY backend/tsconfig*.json ./
 COPY backend/nest-cli.json ./
 COPY backend/src ./src
 COPY backend/test ./test
+
+# Frontend (for unit tests)
+WORKDIR /app/frontend
+
+COPY frontend/package*.json ./
+RUN npm install
+
+COPY frontend/tsconfig*.json ./
+COPY frontend/vite.config.ts ./
+COPY frontend/src ./src
+COPY frontend/index.html ./
 
 COPY run_tests.sh /app/run_tests.sh
 RUN chmod +x /app/run_tests.sh

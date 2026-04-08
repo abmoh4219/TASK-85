@@ -1,10 +1,14 @@
-import { Injectable, NestMiddleware, BadRequestException } from '@nestjs/common';
+import {
+  Injectable, CanActivate, ExecutionContext, BadRequestException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { DataSource } from 'typeorm';
-import { Request, Response, NextFunction } from 'express';
+import { Request } from 'express';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 const NONCE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
-// Paths exempt from nonce REQUIREMENT (nonce is optional but still validated if present)
+/** Paths exempt from nonce REQUIREMENT (nonce is optional but still validated if present). */
 const EXEMPT_PATHS = [
   '/auth/login',
   '/auth/refresh',
@@ -13,47 +17,42 @@ const EXEMPT_PATHS = [
 ];
 
 /**
- * Extract user ID from JWT token in Authorization header without full auth flow.
- * This allows user-scoped nonce protection even though middleware runs before guards.
+ * Guard that validates nonce + timestamp on sensitive write operations.
+ *
+ * Runs AFTER JwtAuthGuard so it uses the verified req.user context
+ * for user-scoped nonce tracking — no unverified JWT decoding.
  */
-function extractUserIdFromToken(req: Request): string | null {
-  const auth = req.headers['authorization'];
-  if (!auth || !auth.startsWith('Bearer ')) return null;
-  try {
-    const token = auth.split(' ')[1];
-    // Decode JWT payload (base64url) without verification — just to get the sub claim
-    // Actual verification happens in JwtAuthGuard later
-    const payload = JSON.parse(
-      Buffer.from(token.split('.')[1], 'base64url').toString('utf-8'),
-    );
-    return payload.sub ?? payload.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
 @Injectable()
-export class NonceMiddleware implements NestMiddleware {
-  constructor(private readonly dataSource: DataSource) {}
+export class NonceGuard implements CanActivate {
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly reflector: Reflector,
+  ) {}
 
-  async use(req: Request, _res: Response, next: NextFunction) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context.switchToHttp().getRequest<Request>();
+
     // Only validate on sensitive write methods
     if (!['POST', 'PATCH', 'DELETE'].includes(req.method)) {
-      return next();
+      return true;
     }
+
+    // Skip for public endpoints
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     const nonce = req.headers['x-nonce'] as string;
     const timestamp = req.headers['x-timestamp'] as string;
 
     // Check if this path is exempt from the nonce requirement
     const requestPath = req.baseUrl + req.path;
-    const isExempt = EXEMPT_PATHS.some((p) => requestPath.startsWith(p));
+    const isExempt = isPublic || EXEMPT_PATHS.some((p) => requestPath.startsWith(p));
 
     // If headers are missing: exempt paths pass through, others are rejected
     if (!nonce || !timestamp) {
-      if (isExempt) {
-        return next();
-      }
+      if (isExempt) return true;
       throw new BadRequestException(
         'Missing required X-Nonce and X-Timestamp headers for write operations',
       );
@@ -67,10 +66,11 @@ export class NonceMiddleware implements NestMiddleware {
       throw new BadRequestException('Request timestamp out of acceptable range (\u00b15 min)');
     }
 
-    // User-scoped nonce: extract user ID from JWT token (pre-auth phase)
-    const userId = extractUserIdFromToken(req);
+    // User-scoped nonce: use VERIFIED user from JwtAuthGuard (not raw JWT decode)
+    const user = req.user as { id?: string } | undefined;
+    const userId = user?.id ?? null;
 
-    // Check for duplicate nonce in DB (scoped by user)
+    // Check for duplicate nonce in DB (scoped by verified user)
     try {
       const existing = await this.dataSource.query(
         `SELECT id FROM used_nonces WHERE nonce = $1 AND COALESCE(user_id, '__anon__') = COALESCE($2, '__anon__')`,
@@ -99,6 +99,6 @@ export class NonceMiddleware implements NestMiddleware {
       throw new BadRequestException('Nonce validation failed');
     }
 
-    next();
+    return true;
   }
 }

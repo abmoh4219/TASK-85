@@ -1,6 +1,7 @@
 import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { encrypt, blindIndex } from '../common/transformers/aes.transformer';
 
 @Injectable()
 export class SeederService implements OnApplicationBootstrap {
@@ -37,16 +38,21 @@ export class SeederService implements OnApplicationBootstrap {
       bcrypt.hash(PASSWORD, ROUNDS),
     ]);
 
-    // Users
-    await this.dataSource.query(
-      `INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-       VALUES
-         (uuid_generate_v4(), 'admin',      $1, 'admin',      true, now(), now()),
-         (uuid_generate_v4(), 'supervisor', $2, 'supervisor', true, now(), now()),
-         (uuid_generate_v4(), 'hr',         $3, 'hr',         true, now(), now()),
-         (uuid_generate_v4(), 'employee',   $4, 'employee',   true, now(), now())`,
-      [adminHash, supHash, hrHash, empHash],
-    );
+    // Users — username is AES-encrypted, username_hash is HMAC blind index for lookups
+    const users = [
+      { name: 'admin',      hash: adminHash, role: 'admin' },
+      { name: 'supervisor', hash: supHash,   role: 'supervisor' },
+      { name: 'hr',         hash: hrHash,    role: 'hr' },
+      { name: 'employee',   hash: empHash,   role: 'employee' },
+    ];
+    for (const u of users) {
+      await this.dataSource.query(
+        `INSERT INTO users (id, username, username_hash, password_hash, role, is_active, created_at, updated_at)
+         VALUES (uuid_generate_v4(), $1, $2, $3, $4, true, now(), now())
+         ON CONFLICT DO NOTHING`,
+        [encrypt(u.name), blindIndex(u.name), u.hash, u.role],
+      );
+    }
     this.logger.log('Users seeded');
 
     // Vendors

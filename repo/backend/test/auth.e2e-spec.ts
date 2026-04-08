@@ -3,8 +3,9 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
 import { nh } from './helpers/nonce.helper';
+import { seedTestUser } from './helpers/seed-user.helper';
+import { blindIndex } from '../src/common/transformers/aes.transformer';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
@@ -29,24 +30,14 @@ describe('Auth (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     // Ensure test user exists
-    const hash = await bcrypt.hash('meridian2024', 10);
-    await dataSource.query(
-      `INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-       VALUES (uuid_generate_v4(), 'e2e_admin', $1, 'admin', true, now(), now())
-       ON CONFLICT (username) DO NOTHING`,
-      [hash],
-    );
-    await dataSource.query(
-      `INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-       VALUES (uuid_generate_v4(), 'e2e_inactive', $1, 'employee', false, now(), now())
-       ON CONFLICT (username) DO NOTHING`,
-      [hash],
-    );
+    await seedTestUser(dataSource, 'e2e_admin', 'admin', 'meridian2024');
+    await seedTestUser(dataSource, 'e2e_inactive', 'employee', 'meridian2024', false);
   });
 
   afterAll(async () => {
-    await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'e2e_%')`);
-    await dataSource.query(`DELETE FROM users WHERE username LIKE 'e2e_%'`);
+    const testHashes = ['e2e_admin', 'e2e_inactive'].map(u => blindIndex(u));
+    await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [testHashes]);
+    await dataSource.query(`DELETE FROM users WHERE username_hash = ANY($1)`, [testHashes]);
     await app.close();
   });
 

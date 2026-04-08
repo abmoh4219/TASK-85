@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserRole } from './user.entity';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
+import { blindIndex } from '../../common/transformers/aes.transformer';
 
 @Injectable()
 export class UsersService {
@@ -19,17 +20,26 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto): Promise<User> {
-    const existing = await this.repo.findOne({ where: { username: dto.username } });
+    const usernameHash = blindIndex(dto.username);
+    const existing = await this.repo.findOne({ where: { usernameHash } });
     if (existing) throw new ConflictException('Username already taken');
     const hash = await bcrypt.hash(dto.password, 12);
-    const user = this.repo.create({ username: dto.username, passwordHash: hash, role: dto.role });
+    const user = this.repo.create({
+      username: dto.username,
+      usernameHash,
+      passwordHash: hash,
+      role: dto.role,
+    });
     return this.repo.save(user);
   }
 
   async update(id: string, dto: UpdateUserDto): Promise<User> {
     const user = await this.repo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
-    if (dto.username !== undefined) user.username = dto.username;
+    if (dto.username !== undefined) {
+      user.username = dto.username;
+      user.usernameHash = blindIndex(dto.username);
+    }
     if (dto.role !== undefined) user.role = dto.role;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;
     return this.repo.save(user);

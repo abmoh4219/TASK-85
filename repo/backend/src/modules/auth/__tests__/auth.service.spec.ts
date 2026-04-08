@@ -11,6 +11,7 @@ import { RefreshToken } from '../refresh-token.entity';
 const mockUser = (): User => ({
   id: 'user-uuid-1',
   username: 'admin',
+  usernameHash: 'mock-hash',
   passwordHash: bcrypt.hashSync('meridian2024', 10),
   role: UserRole.ADMIN,
   isActive: true,

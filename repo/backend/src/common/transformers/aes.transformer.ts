@@ -62,12 +62,45 @@ export function decrypt(ciphertext: string): string {
  * Learning: title, description, targetRole (learning_plans); title, description,
  *   studyFrequencyRule (learning_goals); reason (learning_plan_lifecycle);
  *   notes (study_sessions)
+ * Users: username (with blind index for lookups via username_hash)
+ *   password_hash uses bcrypt one-way hash (intentionally not AES — industry standard)
  * Rules: name, description (business_rules); changeSummary (rule_versions);
- *   feedback (rollout_feedback)
+ *   definition (rule_versions, via jsonAesTransformer); feedback (rollout_feedback)
  * Notifications: title, message (notifications); description, reviewNotes,
  *   ipAddress, requestPath (anomaly_events)
  * Admin: action, entityType, ip (audit_logs); description (admin_policies)
  */
+/**
+ * Compute a deterministic HMAC-SHA256 blind index for encrypted searchable fields.
+ * This allows WHERE queries on a hash column while the actual value is AES-encrypted.
+ */
+export function blindIndex(value: string): string {
+  return crypto.createHmac('sha256', getKey()).update(value.toLowerCase()).digest('hex');
+}
+
+/**
+ * TypeORM transformer for JSONB columns that need AES-256 encryption at rest.
+ * Serialises the object to JSON, encrypts the string, and stores as text.
+ * On read, decrypts and parses back to an object.
+ */
+export const jsonAesTransformer = {
+  to(value: Record<string, unknown> | null | undefined): string | null {
+    if (value == null) return null;
+    return encrypt(JSON.stringify(value));
+  },
+  from(value: string | null | undefined): Record<string, unknown> | null {
+    if (value == null || value === '') return null;
+    try {
+      const json = decrypt(value);
+      return JSON.parse(json);
+    } catch {
+      // Fallback for unencrypted legacy JSONB data
+      if (typeof value === 'object') return value as Record<string, unknown>;
+      try { return JSON.parse(value); } catch { return null; }
+    }
+  },
+};
+
 export const aesTransformer = {
   to(value: string | null | undefined): string | null {
     if (value == null || value === '') return null;

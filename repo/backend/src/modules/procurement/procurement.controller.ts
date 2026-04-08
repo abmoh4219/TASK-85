@@ -3,7 +3,6 @@ import {
   UseGuards, Req, ParseUUIDPipe, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { Throttle } from '@nestjs/throttler';
 import { ForbiddenException } from '@nestjs/common';
 import { ProcurementService } from './procurement.service';
 import { AdminService } from '../admin/admin.service';
@@ -38,7 +37,7 @@ export class ProcurementController {
 
   @Post('requests')
   @RequireAction('procurement:create-request')
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+
   async createRequest(
     @Body() dto: CreatePurchaseRequestDto,
     @CurrentUser() user: AuthUser,
@@ -141,7 +140,7 @@ export class ProcurementController {
   @Post('rfq')
   @RequireAction('procurement:create-rfq')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+
   async createRFQ(
     @Body() dto: CreateRFQDto,
     @CurrentUser() user: AuthUser,
@@ -176,7 +175,7 @@ export class ProcurementController {
   @Post('orders')
   @RequireAction('procurement:create-po')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+
   async createPO(
     @Body() dto: CreatePurchaseOrderDto,
     @CurrentUser() user: AuthUser,

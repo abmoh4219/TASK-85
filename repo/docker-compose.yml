@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: meridianmed
       POSTGRES_USER: meridian
-      POSTGRES_PASSWORD: meridian_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-only-password-change-in-production}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
@@ -32,11 +32,11 @@ services:
       DB_PORT: 5432
       DB_NAME: meridianmed
       DB_USER: meridian
-      DB_PASSWORD: meridian_secret
-      JWT_SECRET: meridianmed_jwt_secret_key_change_in_prod
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-dev-only-password-change-in-production}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-do-not-use-in-production}
       JWT_EXPIRES_IN: 15m
       REFRESH_TOKEN_EXPIRES_IN: 8h
-      ENCRYPTION_KEY: meridianmed_aes256_key_32chars_here
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-only-encryption-key-change-me-in-prod}
       THROTTLE_TTL: 60
       THROTTLE_LIMIT: 10
       CORS_ORIGIN: https://localhost:3000

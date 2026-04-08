@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: meridianmed_test
       POSTGRES_USER: meridian
-      POSTGRES_PASSWORD: meridian_secret
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-test-only-password-not-secret}
     ports:
       - "5433:5432"
     healthcheck:
@@ -28,11 +28,11 @@ services:
       DB_PORT: 5432
       DB_NAME: meridianmed_test
       DB_USER: meridian
-      DB_PASSWORD: meridian_secret
-      JWT_SECRET: test_jwt_secret_key
+      DB_PASSWORD: ${TEST_DB_PASSWORD:-test-only-password-not-secret}
+      JWT_SECRET: ${TEST_JWT_SECRET:-test-only-jwt-secret-not-for-production}
       JWT_EXPIRES_IN: 15m
       REFRESH_TOKEN_EXPIRES_IN: 8h
-      ENCRYPTION_KEY: test_aes256_key_32chars_padding!!
+      ENCRYPTION_KEY: ${TEST_ENCRYPTION_KEY:-test-only-encryption-key-not-secret}
       THROTTLE_TTL: 60
       THROTTLE_LIMIT: 100
       CORS_ORIGIN: http://localhost:3000

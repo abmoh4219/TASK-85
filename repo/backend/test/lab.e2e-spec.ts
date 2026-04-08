@@ -3,8 +3,9 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
 import { nh } from './helpers/nonce.helper';
+import { seedTestUsers } from './helpers/seed-user.helper';
+import { blindIndex } from '../src/common/transformers/aes.transformer';
 
 /**
  * Lab Operations e2e tests (real PostgreSQL)
@@ -41,15 +42,10 @@ describe('Lab (e2e)', () => {
     await app.init();
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
-    const hash = await bcrypt.hash('testpass123', 10);
-    await dataSource.query(
-      `INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-       VALUES
-         (uuid_generate_v4(), '${TEST_PREFIX}admin',    $1, 'admin',    true, now(), now()),
-         (uuid_generate_v4(), '${TEST_PREFIX}employee', $1, 'employee', true, now(), now())
-       ON CONFLICT (username) DO NOTHING`,
-      [hash],
-    );
+    await seedTestUsers(dataSource, [
+      { username: `${TEST_PREFIX}admin`, role: 'admin' },
+      { username: `${TEST_PREFIX}employee`, role: 'employee' },
+    ], 'testpass123');
 
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
@@ -64,15 +60,19 @@ describe('Lab (e2e)', () => {
 
   afterAll(async () => {
     try {
-      await dataSource.query(`DELETE FROM lab_report_versions WHERE report_id IN (SELECT id FROM lab_reports WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM lab_reports WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM lab_results WHERE entered_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM lab_samples WHERE submitted_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
+      const hashes = [
+        blindIndex(`${TEST_PREFIX}admin`),
+        blindIndex(`${TEST_PREFIX}employee`),
+      ];
+      await dataSource.query(`DELETE FROM lab_report_versions WHERE report_id IN (SELECT id FROM lab_reports WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM lab_reports WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM lab_results WHERE entered_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM lab_samples WHERE submitted_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
       await dataSource.query(`DELETE FROM reference_ranges WHERE test_id IN (SELECT id FROM lab_test_dictionaries WHERE test_code LIKE '${TEST_PREFIX}%')`);
       await dataSource.query(`DELETE FROM lab_test_dictionaries WHERE test_code LIKE '${TEST_PREFIX}%'`);
-      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM users WHERE username LIKE '${TEST_PREFIX}%'`);
+      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM users WHERE username_hash = ANY($1)`, [hashes]);
     } catch (_) {
       // Best-effort
     }

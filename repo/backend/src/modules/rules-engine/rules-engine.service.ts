@@ -279,7 +279,11 @@ export class RulesEngineService {
 
     const targetVersion = rule.currentVersion - 1;
 
-    // Run rollback in a transaction for atomicity
+    // Run rollback in a transaction for atomicity.
+    // Timing validation happens INSIDE the transaction so exceeding the limit
+    // causes a rollback of the DB changes (not a post-commit error).
+    const deadlineMs = startedAt.getTime() + MAX_ROLLBACK_MS;
+
     await this.dataSource.transaction(async (manager) => {
       // Mark current version as rolled back
       await manager.update(RuleVersion, { ruleId: id, versionNumber: rule.currentVersion }, {
@@ -297,20 +301,18 @@ export class RulesEngineService {
         currentVersion: targetVersion,
         status: RuleStatus.ACTIVE,
       });
+
+      // Validate timing BEFORE commit — if exceeded, this throw aborts the transaction
+      if (Date.now() > deadlineMs) {
+        throw new BadRequestException(
+          `Rollback exceeded 5-minute time limit. Transaction rolled back.`,
+        );
+      }
     });
 
     const completedAt = new Date();
     const durationMs = completedAt.getTime() - startedAt.getTime();
     const completedWithinLimit = durationMs < MAX_ROLLBACK_MS;
-
-    // Enforce the 5-minute rollback constraint
-    if (!completedWithinLimit) {
-      throw new BadRequestException(
-        `Rollback exceeded 5-minute time limit (took ${Math.round(durationMs / 1000)}s). ` +
-        'Rollback transaction was committed but flagged as a violation. ' +
-        'Review and remediate manually.',
-      );
-    }
 
     // Record rollout record for the rollback
     await this.rolloutRepo.save(

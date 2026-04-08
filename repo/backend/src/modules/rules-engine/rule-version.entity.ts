@@ -3,7 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn,
 } from 'typeorm';
 import { BusinessRule } from './business-rule.entity';
-import { aesTransformer } from '../../common/transformers/aes.transformer';
+import { aesTransformer, jsonAesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('rule_versions')
 export class RuleVersion {
@@ -20,7 +20,8 @@ export class RuleVersion {
   @Column({ name: 'version_number', type: 'int' })
   versionNumber: number;
 
-  @Column({ type: 'jsonb' })
+  /** Business rule definition — AES-encrypted at rest as JSON string. */
+  @Column({ type: 'varchar', length: 8192, transformer: jsonAesTransformer })
   definition: Record<string, unknown>;
 
   @Column({ name: 'change_summary', type: 'text', nullable: true, transformer: aesTransformer })

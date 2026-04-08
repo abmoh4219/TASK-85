@@ -3,8 +3,9 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
 import { nh } from './helpers/nonce.helper';
+import { seedTestUser } from './helpers/seed-user.helper';
+import { blindIndex } from '../src/common/transformers/aes.transformer';
 
 /**
  * Inventory & Smart Alerts e2e tests (real PostgreSQL)
@@ -44,13 +45,7 @@ describe('Inventory (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     // Seed admin user
-    const hash = await bcrypt.hash('testpass123', 10);
-    await dataSource.query(
-      `INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-       VALUES (uuid_generate_v4(), '${TEST_PREFIX}admin', $1, 'admin', true, now(), now())
-       ON CONFLICT (username) DO NOTHING`,
-      [hash],
-    );
+    await seedTestUser(dataSource, `${TEST_PREFIX}admin`, 'admin', 'testpass123');
 
     // Login
     const loginRes = await request(app.getHttpServer())
@@ -97,7 +92,8 @@ describe('Inventory (e2e)', () => {
     itemConsumptionId = itemConsumption.id;
 
     const [adminUser] = await dataSource.query(
-      `SELECT id FROM users WHERE username = '${TEST_PREFIX}admin' LIMIT 1`,
+      `SELECT id FROM users WHERE username_hash = $1 LIMIT 1`,
+      [blindIndex(`${TEST_PREFIX}admin`)],
     );
 
     // Seed 8-week baseline: 1 unit/day for 56 days (avg=1/day)
@@ -122,16 +118,17 @@ describe('Inventory (e2e)', () => {
 
   afterAll(async () => {
     try {
-      await dataSource.query(`DELETE FROM recommendation_feedback WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
+      const hashes = [blindIndex(`${TEST_PREFIX}admin`)];
+      await dataSource.query(`DELETE FROM recommendation_feedback WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
       await dataSource.query(`DELETE FROM replenishment_recommendations WHERE item_id IN (SELECT id FROM items WHERE sku LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM purchase_request_items WHERE purchase_request_id IN (SELECT id FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
+      await dataSource.query(`DELETE FROM purchase_request_items WHERE purchase_request_id IN (SELECT id FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM purchase_requests WHERE requester_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
       await dataSource.query(`DELETE FROM alerts WHERE item_id IN (SELECT id FROM items WHERE sku LIKE '${TEST_PREFIX}%')`);
       await dataSource.query(`DELETE FROM stock_movements WHERE item_id IN (SELECT id FROM items WHERE sku LIKE '${TEST_PREFIX}%')`);
       await dataSource.query(`DELETE FROM inventory_levels WHERE item_id IN (SELECT id FROM items WHERE sku LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM users WHERE username LIKE '${TEST_PREFIX}%'`);
+      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM users WHERE username_hash = ANY($1)`, [hashes]);
       await dataSource.query(`DELETE FROM items WHERE sku LIKE '${TEST_PREFIX}%'`);
     } catch (_) {
       // Best-effort

@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { User } from '../users/user.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { LoginDto } from './dto/login.dto';
+import { blindIndex } from '../../common/transformers/aes.transformer';
 
 @Injectable()
 export class AuthService {
@@ -29,8 +30,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ip?: string) {
+    // Query by blind index (HMAC hash) since username column is AES-encrypted
+    const usernameHash = blindIndex(dto.username);
     const user = await this.userRepo.findOne({
-      where: { username: dto.username },
+      where: { usernameHash },
     });
 
     if (!user) throw new UnauthorizedException('Invalid credentials');

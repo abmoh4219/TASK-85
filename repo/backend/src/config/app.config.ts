@@ -6,7 +6,7 @@ export const appConfig = () => ({
     port: parseInt(process.env.DB_PORT || '5432', 10),
     name: process.env.DB_NAME || 'meridianmed',
     user: process.env.DB_USER || 'meridian',
-    password: process.env.DB_PASSWORD || 'meridian_secret',
+    password: process.env.DB_PASSWORD || 'dev-only-password-change-in-production',
   },
   jwt: {
     secret: process.env.JWT_SECRET, // Required — no fallback. Set in docker-compose.yml.

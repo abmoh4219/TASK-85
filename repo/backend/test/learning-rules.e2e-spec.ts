@@ -3,8 +3,9 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
 import { nh } from './helpers/nonce.helper';
+import { seedTestUsers } from './helpers/seed-user.helper';
+import { blindIndex } from '../src/common/transformers/aes.transformer';
 
 /**
  * Learning Plans & Rules Engine e2e tests (real PostgreSQL)
@@ -43,19 +44,15 @@ describe('Learning & Rules Engine (e2e)', () => {
     await app.init();
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
-    const hash = await bcrypt.hash('testpass123', 10);
-    await dataSource.query(
-      `INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at)
-       VALUES
-         (uuid_generate_v4(), '${TEST_PREFIX}admin',    $1, 'admin',    true, now(), now()),
-         (uuid_generate_v4(), '${TEST_PREFIX}hr',       $1, 'hr',       true, now(), now()),
-         (uuid_generate_v4(), '${TEST_PREFIX}employee', $1, 'employee', true, now(), now())
-       ON CONFLICT (username) DO NOTHING`,
-      [hash],
-    );
+    await seedTestUsers(dataSource, [
+      { username: `${TEST_PREFIX}admin`, role: 'admin' },
+      { username: `${TEST_PREFIX}hr`, role: 'hr' },
+      { username: `${TEST_PREFIX}employee`, role: 'employee' },
+    ], 'testpass123');
 
     const [empRow] = await dataSource.query(
-      `SELECT id FROM users WHERE username = '${TEST_PREFIX}employee'`,
+      `SELECT id FROM users WHERE username_hash = $1`,
+      [blindIndex(`${TEST_PREFIX}employee`)],
     );
     employeeUserId = empRow.id;
 
@@ -77,16 +74,21 @@ describe('Learning & Rules Engine (e2e)', () => {
 
   afterAll(async () => {
     try {
-      await dataSource.query(`DELETE FROM rule_rollouts WHERE rule_id IN (SELECT id FROM business_rules WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM rule_versions WHERE rule_id IN (SELECT id FROM business_rules WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM business_rules WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM study_sessions WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM learning_goals WHERE plan_id IN (SELECT id FROM learning_plans WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM learning_plan_lifecycle WHERE plan_id IN (SELECT id FROM learning_plans WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%'))`);
-      await dataSource.query(`DELETE FROM learning_plans WHERE created_by_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username LIKE '${TEST_PREFIX}%')`);
-      await dataSource.query(`DELETE FROM users WHERE username LIKE '${TEST_PREFIX}%'`);
+      const hashes = [
+        blindIndex(`${TEST_PREFIX}admin`),
+        blindIndex(`${TEST_PREFIX}hr`),
+        blindIndex(`${TEST_PREFIX}employee`),
+      ];
+      await dataSource.query(`DELETE FROM rule_rollouts WHERE rule_id IN (SELECT id FROM business_rules WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM rule_versions WHERE rule_id IN (SELECT id FROM business_rules WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM business_rules WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM study_sessions WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM learning_goals WHERE plan_id IN (SELECT id FROM learning_plans WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM learning_plan_lifecycle WHERE plan_id IN (SELECT id FROM learning_plans WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1)))`, [hashes]);
+      await dataSource.query(`DELETE FROM learning_plans WHERE created_by_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username_hash = ANY($1))`, [hashes]);
+      await dataSource.query(`DELETE FROM users WHERE username_hash = ANY($1)`, [hashes]);
     } catch (_) {}
     await app.close();
   });
