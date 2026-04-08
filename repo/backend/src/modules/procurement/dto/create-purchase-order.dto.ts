@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import {
-  IsUUID, IsOptional, IsArray, ValidateNested,
-  IsNumber, IsPositive, IsString, MaxLength,
+  IsUUID, IsArray, ValidateNested,
+  IsNumber, IsPositive, IsString, MaxLength, IsOptional,
 } from 'class-validator';
 
 export class POLineDto {
@@ -22,9 +22,8 @@ export class POLineDto {
 }
 
 export class CreatePurchaseOrderDto {
-  @IsOptional()
   @IsUUID()
-  rfqId?: string;
+  rfqId: string;
 
   @IsUUID()
   vendorId: string;

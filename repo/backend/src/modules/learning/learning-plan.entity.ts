@@ -3,6 +3,7 @@ import {
   CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany,
 } from 'typeorm';
 import { LearningGoal } from './learning-goal.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum LearningPlanStatus {
   NOT_STARTED = 'not_started',
@@ -20,7 +21,7 @@ export class LearningPlan {
   @Column({ length: 300 })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
   @Column({ name: 'user_id' })

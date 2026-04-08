@@ -86,7 +86,7 @@ export class LearningController {
     @Body() dto: LogSessionDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.logStudySession(goalId, dto, user.id);
+    const data = await this.service.logStudySession(goalId, dto, user.id, user.role);
     return { data };
   }
 

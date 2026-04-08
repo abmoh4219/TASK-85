@@ -617,4 +617,233 @@ describe('Security (e2e)', () => {
       await dataSource.query(`DELETE FROM business_rules WHERE id = $1`, [ruleId]);
     });
   });
+
+  // ── PO must derive from approved RFQ ───────────────────────────────────
+
+  describe('PO-RFQ enforcement', () => {
+    it('rejects PO creation without rfqId', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/procurement/orders')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({
+          vendorId: '00000000-0000-0000-0000-000000000000',
+          lines: [{ itemId: '00000000-0000-0000-0000-000000000000', quantity: 1, unitPrice: 10, unitOfMeasure: 'each' }],
+        });
+      // Should fail validation (rfqId required) with 400
+      expect([400, 422]).toContain(res.status);
+    });
+
+    it('rejects PO creation with non-existent RFQ', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/procurement/orders')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({
+          rfqId: '00000000-0000-0000-0000-000000000099',
+          vendorId: '00000000-0000-0000-0000-000000000000',
+          lines: [{ itemId: '00000000-0000-0000-0000-000000000000', quantity: 1, unitPrice: 10, unitOfMeasure: 'each' }],
+        });
+      expect(res.status).toBe(400);
+      // message may be 'RFQ not found...' or validation error
+      expect(res.body.message).toBeDefined();
+    });
+  });
+
+  // ── Cross-user task/session mutation denial ────────────────────────────
+
+  describe('Cross-user project task mutation denial', () => {
+    let projId: string;
+    let taskId: string;
+
+    beforeAll(async () => {
+      // Admin creates project and task assigned to admin
+      const projRes = await request(app.getHttpServer())
+        .post('/projects')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ title: 'SecTest Project' });
+      projId = projRes.body.data.id;
+
+      const taskRes = await request(app.getHttpServer())
+        .post(`/projects/${projId}/tasks`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ title: 'SecTest Task', assignedToId: adminUserId });
+      taskId = taskRes.body.data.id;
+
+      // Advance to in_progress
+      await request(app.getHttpServer())
+        .patch(`/projects/${projId}/tasks/${taskId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ status: 'in_progress' });
+    });
+
+    it('employee cannot advance task assigned to another user', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/projects/${projId}/tasks/${taskId}/status`)
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({ status: 'submitted' });
+      expect(res.status).toBe(403);
+    });
+
+    it('employee cannot submit deliverable for task assigned to another user', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/projects/${projId}/tasks/${taskId}/deliverables`)
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({ title: 'Unauthorized deliverable' });
+      expect(res.status).toBe(403);
+    });
+
+    afterAll(async () => {
+      await dataSource.query(`DELETE FROM deliverables WHERE task_id = $1`, [taskId]);
+      await dataSource.query(`DELETE FROM project_tasks WHERE id = $1`, [taskId]);
+      await dataSource.query(`DELETE FROM projects WHERE id = $1`, [projId]);
+    });
+  });
+
+  // ── Cross-user learning session denial ─────────────────────────────────
+
+  describe('Cross-user learning session denial', () => {
+    let planId: string;
+    let goalId: string;
+
+    beforeAll(async () => {
+      // Admin creates a plan assigned to admin user
+      const planRes = await request(app.getHttpServer())
+        .post('/learning/plans')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ title: 'SecTest Plan', userId: adminUserId });
+      planId = planRes.body.data.id;
+
+      // Activate plan
+      await request(app.getHttpServer())
+        .patch(`/learning/plans/${planId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ status: 'active', reason: 'test' });
+
+      const goalRes = await request(app.getHttpServer())
+        .post(`/learning/plans/${planId}/goals`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set(nh())
+        .send({ title: 'SecTest Goal', sessionsPerWeek: 3 });
+      goalId = goalRes.body.data.id;
+    });
+
+    it('employee cannot log session for a plan they do not own', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/learning/goals/${goalId}/sessions`)
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({ durationMinutes: 30 });
+      expect(res.status).toBe(403);
+    });
+
+    afterAll(async () => {
+      await dataSource.query(`DELETE FROM study_sessions WHERE goal_id = $1`, [goalId]);
+      await dataSource.query(`DELETE FROM learning_goals WHERE id = $1`, [goalId]);
+      await dataSource.query(`DELETE FROM learning_plan_lifecycle WHERE plan_id = $1`, [planId]);
+      await dataSource.query(`DELETE FROM learning_plans WHERE id = $1`, [planId]);
+    });
+  });
+
+  // ── Durable nonce replay ───────────────────────────────────────────────
+
+  describe('Durable nonce replay protection', () => {
+    it('rejects duplicate nonce for same user (DB-backed)', async () => {
+      const nonce = `durable-nonce-${Date.now()}-${Math.random()}`;
+      const ts = String(Date.now());
+
+      // First request — should succeed (auth exempt path with nonce validates)
+      const first = await request(app.getHttpServer())
+        .post('/auth/login')
+        .set('X-Nonce', nonce)
+        .set('X-Timestamp', ts)
+        .send({ username: 'sec_admin', password: 'meridian2024' });
+      expect(first.status).not.toBe(400);
+
+      // Second with same nonce — should be rejected
+      const second = await request(app.getHttpServer())
+        .post('/auth/login')
+        .set('X-Nonce', nonce)
+        .set('X-Timestamp', ts)
+        .send({ username: 'sec_admin', password: 'meridian2024' });
+      expect(second.status).toBe(400);
+      expect(second.body.message).toMatch(/nonce/i);
+    });
+
+    it('nonce persisted in DB can be verified', async () => {
+      const rows = await dataSource.query(
+        `SELECT COUNT(*) as cnt FROM used_nonces WHERE created_at > NOW() - INTERVAL '5 minutes'`,
+      );
+      expect(Number(rows[0].cnt)).toBeGreaterThan(0);
+    });
+  });
+
+  // ── Encryption evidence ────────────────────────────────────────────────
+
+  describe('Encryption coverage for sensitive fields', () => {
+    it('vendor contact info is encrypted at rest for new records', async () => {
+      // Insert a vendor via TypeORM (which applies the transformer)
+      const Vendor = dataSource.getRepository('vendors');
+      const vendor = await dataSource.query(
+        `INSERT INTO vendors (id, name, contact_name, email, phone, is_active, created_at, updated_at)
+         VALUES (uuid_generate_v4(), 'EncTestVendor', 'WILL_BE_ENCRYPTED', 'WILL_BE_ENCRYPTED', 'WILL_BE_ENCRYPTED', true, now(), now())
+         RETURNING id`,
+      );
+      // The raw SQL insert above won't use the transformer. Let's use the ORM entity manager instead.
+      await dataSource.query(`DELETE FROM vendors WHERE name = 'EncTestVendor'`);
+
+      // Use the entity manager which applies the AES transformer
+      const mgr = dataSource.manager;
+      const saved = await mgr.save(mgr.create('Vendor' as any, {
+        name: 'EncTestVendor2',
+        contactName: 'Secret Contact',
+        email: 'secret@test.com',
+        phone: '555-1234',
+        isActive: true,
+      }));
+      const id = (saved as any).id;
+
+      // Read raw from DB — should be encrypted (iv:hex format)
+      const rows = await dataSource.query(
+        `SELECT contact_name, email, phone FROM vendors WHERE id = $1`, [id],
+      );
+      expect(rows[0].contact_name).toContain(':');
+      expect(rows[0].email).toContain(':');
+      expect(rows[0].phone).toContain(':');
+      expect(rows[0].contact_name).not.toBe('Secret Contact');
+
+      await dataSource.query(`DELETE FROM vendors WHERE id = $1`, [id]);
+    });
+
+    it('lab sample notes are encrypted at rest', async () => {
+      // Create a sample with notes
+      const createRes = await request(app.getHttpServer())
+        .post('/lab/samples')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .set(nh())
+        .send({
+          sampleType: 'Blood',
+          collectionDate: new Date().toISOString(),
+          notes: 'Sensitive clinical note for encryption test',
+        });
+      expect(createRes.status).toBe(201);
+      const sampleId = createRes.body.data.id;
+
+      // Check DB stores encrypted
+      const rows = await dataSource.query(
+        `SELECT notes FROM lab_samples WHERE id = $1`, [sampleId],
+      );
+      expect(rows[0].notes).not.toBe('Sensitive clinical note for encryption test');
+      expect(rows[0].notes).toContain(':'); // iv:ciphertext format
+
+      await dataSource.query(`DELETE FROM lab_samples WHERE id = $1`, [sampleId]);
+    });
+  });
 });

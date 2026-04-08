@@ -1,4 +1,5 @@
 import { Injectable, NestMiddleware, BadRequestException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { Request, Response, NextFunction } from 'express';
 
 const NONCE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -13,9 +14,9 @@ const EXEMPT_PATHS = [
 
 @Injectable()
 export class NonceMiddleware implements NestMiddleware {
-  private readonly usedNonces = new Map<string, number>();
+  constructor(private readonly dataSource: DataSource) {}
 
-  use(req: Request, _res: Response, next: NextFunction) {
+  async use(req: Request, _res: Response, next: NextFunction) {
     // Only validate on sensitive write methods
     if (!['POST', 'PATCH', 'DELETE'].includes(req.method)) {
       return next();
@@ -46,14 +47,37 @@ export class NonceMiddleware implements NestMiddleware {
       throw new BadRequestException('Request timestamp out of acceptable range (\u00b15 min)');
     }
 
-    if (this.usedNonces.has(nonce)) {
-      throw new BadRequestException('Duplicate nonce \u2014 request already processed');
-    }
+    // User-scoped nonce: extract user ID from JWT if available
+    const user = (req as any).user as { id?: string } | undefined;
+    const userId = user?.id ?? null;
 
-    this.usedNonces.set(nonce, now);
-    // Cleanup stale nonces
-    for (const [n, time] of this.usedNonces) {
-      if (now - time > NONCE_WINDOW_MS) this.usedNonces.delete(n);
+    // Check for duplicate nonce in DB (scoped by user)
+    try {
+      const existing = await this.dataSource.query(
+        `SELECT id FROM used_nonces WHERE nonce = $1 AND COALESCE(user_id, '__anon__') = COALESCE($2, '__anon__')`,
+        [nonce, userId],
+      );
+
+      if (existing.length > 0) {
+        throw new BadRequestException('Duplicate nonce \u2014 request already processed');
+      }
+
+      // Store nonce in DB
+      await this.dataSource.query(
+        `INSERT INTO used_nonces (nonce, user_id) VALUES ($1, $2)`,
+        [nonce, userId],
+      );
+
+      // Async cleanup of stale nonces (older than window)
+      const cutoff = new Date(now - NONCE_WINDOW_MS).toISOString();
+      this.dataSource.query(
+        `DELETE FROM used_nonces WHERE created_at < $1`,
+        [cutoff],
+      ).catch(() => { /* non-critical cleanup */ });
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      // If DB is unavailable, reject to fail safe
+      throw new BadRequestException('Nonce validation failed');
     }
 
     next();

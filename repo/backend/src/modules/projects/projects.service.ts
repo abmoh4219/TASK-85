@@ -169,6 +169,13 @@ export class ProjectsService {
     const task = await this.taskRepo.findOne({ where: { id: taskId, projectId } });
     if (!task) throw new NotFoundException('Task not found');
 
+    // Object-level auth: employees can only advance their own assigned tasks
+    if (userRole === UserRole.EMPLOYEE) {
+      if (task.assignedToId !== userId && task.createdById !== userId) {
+        throw new ForbiddenException('You are not assigned to this task');
+      }
+    }
+
     // Only admins/supervisors can approve or reject
     if (
       [TaskStatus.APPROVED, TaskStatus.REJECTED].includes(targetStatus) &&
@@ -253,9 +260,17 @@ export class ProjectsService {
     taskId: string,
     dto: SubmitDeliverableDto,
     userId: string,
+    userRole?: UserRole,
   ): Promise<Deliverable> {
     const task = await this.taskRepo.findOne({ where: { id: taskId, projectId } });
     if (!task) throw new NotFoundException('Task not found');
+
+    // Object-level auth: employees can only submit deliverables for their own tasks
+    if (userRole === UserRole.EMPLOYEE) {
+      if (task.assignedToId !== userId && task.createdById !== userId) {
+        throw new ForbiddenException('You are not assigned to this task');
+      }
+    }
 
     const deliverable = this.deliverableRepo.create({
       taskId,

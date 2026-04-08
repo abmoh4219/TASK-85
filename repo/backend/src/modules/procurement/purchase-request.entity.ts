@@ -4,6 +4,7 @@ import {
   OneToMany, ManyToOne, JoinColumn,
 } from 'typeorm';
 import { PurchaseRequestItem } from './purchase-request-item.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 export enum PurchaseRequestStatus {
   DRAFT = 'draft',
@@ -28,7 +29,7 @@ export class PurchaseRequest {
   @Column({ type: 'enum', enum: PurchaseRequestStatus, default: PurchaseRequestStatus.DRAFT })
   status: PurchaseRequestStatus;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   justification: string | null;
 
   @Column({ name: 'approved_by_id', type: 'uuid', nullable: true })

@@ -163,9 +163,14 @@ export class LearningService {
 
   // ── Study Sessions ────────────────────────────────────────────────────────
 
-  async logStudySession(goalId: string, dto: LogSessionDto, userId: string): Promise<StudySession> {
-    const goal = await this.goalRepo.findOne({ where: { id: goalId } });
+  async logStudySession(goalId: string, dto: LogSessionDto, userId: string, userRole?: UserRole): Promise<StudySession> {
+    const goal = await this.goalRepo.findOne({ where: { id: goalId }, relations: ['plan'] });
     if (!goal) throw new NotFoundException('Learning goal not found');
+
+    // Object-level auth: employees can only log sessions for their own plans
+    if (userRole === UserRole.EMPLOYEE && goal.plan && goal.plan.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this learning plan');
+    }
 
     const session = this.sessionRepo.create({
       goalId,

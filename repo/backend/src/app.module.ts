@@ -55,8 +55,8 @@ import { AnomalyEvent } from './modules/notifications/anomaly-event.entity';
   ],
   controllers: [AppController],
   providers: [
-    { provide: APP_GUARD, useClass: AnomalyThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: AnomalyThrottlerGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: ActionGuard },
   ],

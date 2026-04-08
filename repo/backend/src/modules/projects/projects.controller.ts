@@ -135,7 +135,7 @@ export class ProjectsController {
     @Body() dto: SubmitDeliverableDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const data = await this.service.submitDeliverable(projectId, taskId, dto, user.id);
+    const data = await this.service.submitDeliverable(projectId, taskId, dto, user.id, user.role);
     return { data };
   }
 

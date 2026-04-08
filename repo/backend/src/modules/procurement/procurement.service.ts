@@ -209,6 +209,12 @@ export class ProcurementService {
       throw new BadRequestException('Quotes can only be added to DRAFT or SENT RFQs');
     }
 
+    // Validate that the line belongs to this RFQ
+    const rfqLine = await this.rfqLineRepo.findOne({ where: { id: dto.rfqLineId } });
+    if (!rfqLine || rfqLine.rfqId !== rfqId) {
+      throw new BadRequestException('RFQ line does not belong to this RFQ');
+    }
+
     const quote = this.quoteRepo.create({
       rfqLineId: dto.rfqLineId,
       vendorId: dto.vendorId,
@@ -269,10 +275,33 @@ export class ProcurementService {
   // ── Purchase Orders ─────────────────────────────────────────────────────
 
   async createPO(dto: CreatePurchaseOrderDto, userId: string, ip?: string): Promise<PurchaseOrder> {
+    // Enforce: PO must derive from an approved/quoted RFQ
+    const rfq = await this.rfqRepo.findOne({
+      where: { id: dto.rfqId },
+      relations: ['lines'],
+    });
+    if (!rfq) {
+      throw new BadRequestException('RFQ not found — PO must be created from a valid RFQ');
+    }
+    if (![RFQStatus.QUOTED, RFQStatus.AWARDED].includes(rfq.status)) {
+      throw new BadRequestException(
+        `RFQ must be in QUOTED or AWARDED status to create a PO (current: ${rfq.status})`,
+      );
+    }
+    // Validate that all PO line items belong to the RFQ
+    const rfqItemIds = new Set(rfq.lines.map((l) => l.itemId));
+    for (const line of dto.lines) {
+      if (!rfqItemIds.has(line.itemId)) {
+        throw new BadRequestException(
+          `Item ${line.itemId} is not part of RFQ ${dto.rfqId}`,
+        );
+      }
+    }
+
     const poNumber = `PO-${Date.now()}`;
     const po = this.poRepo.create({
       poNumber,
-      rfqId: dto.rfqId ?? null,
+      rfqId: dto.rfqId,
       vendorId: dto.vendorId,
       createdById: userId,
       status: POStatus.DRAFT,

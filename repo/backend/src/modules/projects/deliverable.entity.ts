@@ -3,6 +3,7 @@ import {
   ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn,
 } from 'typeorm';
 import { ProjectTask } from './project-task.entity';
+import { aesTransformer } from '../../common/transformers/aes.transformer';
 
 @Entity('deliverables')
 export class Deliverable {
@@ -22,7 +23,7 @@ export class Deliverable {
   @Column({ length: 300 })
   title: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: aesTransformer })
   description: string | null;
 
   @Column({ name: 'file_url', type: 'text', nullable: true })
