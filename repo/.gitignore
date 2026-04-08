@@ -10,3 +10,5 @@ Thumbs.db
 .vscode/
 coverage/
 *.tsbuildinfo
+.claude/
+convert-ai-sessions.py
