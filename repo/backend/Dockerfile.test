@@ -11,7 +11,7 @@ RUN npm install
 COPY backend/tsconfig*.json ./
 COPY backend/nest-cli.json ./
 COPY backend/src ./src
-COPY backend/test ./test
+COPY backend/tests ./tests
 
 # Frontend (for unit tests)
 WORKDIR /app/frontend
@@ -22,6 +22,7 @@ RUN npm install
 COPY frontend/tsconfig*.json ./
 COPY frontend/vite.config.ts ./
 COPY frontend/src ./src
+COPY frontend/tests ./tests
 COPY frontend/index.html ./
 
 COPY run_tests.sh /app/run_tests.sh
@@ -29,4 +30,5 @@ RUN chmod +x /app/run_tests.sh
 
 WORKDIR /app
 
+ENV IN_CONTAINER=1
 CMD ["/app/run_tests.sh"]
