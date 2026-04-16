@@ -1,36 +1,13 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 
-const { getMock, postMock, headers } = vi.hoisted(() => ({
-  getMock: vi.fn(),
-  postMock: vi.fn(),
-  headers: {} as Record<string, string>,
-}));
-
-vi.mock('@/lib/api-client', () => ({
-  apiClient: {
-    get: (...args: unknown[]) => getMock(...args),
-    post: (...args: unknown[]) => postMock(...args),
-    defaults: { headers: { common: headers } },
-  },
-  tokenStorage: {
-    saveRefresh: vi.fn((userId: string, token: string) => {
-      localStorage.setItem('mm_user_id', userId);
-      localStorage.setItem('mm_refresh_token', token);
-    }),
-    getRefresh: () => ({
-      userId: localStorage.getItem('mm_user_id'),
-      refreshToken: localStorage.getItem('mm_refresh_token'),
-    }),
-    clear: vi.fn(() => {
-      localStorage.removeItem('mm_user_id');
-      localStorage.removeItem('mm_refresh_token');
-    }),
-  },
-}));
-
 import { AuthProvider, useAuth } from '@/features/auth/AuthContext';
+import { apiClient, tokenStorage } from '@/lib/api-client';
+import { clearAuth, API_BASE_URL } from './test-helpers/real-api';
+
+// Ensure the shared axios instance points at the real backend for this file.
+apiClient.defaults.baseURL = API_BASE_URL;
 
 function Probe() {
   const { user, isAuthenticated, isLoading, login, logout } = useAuth();
@@ -39,7 +16,11 @@ function Probe() {
       <span data-testid="loading">{isLoading ? 'yes' : 'no'}</span>
       <span data-testid="auth">{isAuthenticated ? 'yes' : 'no'}</span>
       <span data-testid="user">{user?.username ?? 'none'}</span>
-      <button onClick={() => login('admin', 'pw').catch(() => {})}>do-login</button>
+      <span data-testid="role">{user?.role ?? 'none'}</span>
+      <button onClick={() => login('admin', 'meridian2024').catch(() => {})}>do-login</button>
+      <button onClick={() => login('admin', 'definitely-not-the-password').catch(() => {})}>
+        do-bad-login
+      </button>
       <button onClick={() => logout()}>do-logout</button>
     </div>
   );
@@ -53,12 +34,15 @@ function renderWithProvider() {
   );
 }
 
-describe('AuthContext', () => {
+describe('AuthContext (real backend)', () => {
   beforeEach(() => {
+    clearAuth();
     localStorage.clear();
-    getMock.mockReset();
-    postMock.mockReset();
-    for (const k of Object.keys(headers)) delete headers[k];
+  });
+
+  afterEach(() => {
+    clearAuth();
+    localStorage.clear();
   });
 
   it('settles to unauthenticated when no tokens are stored', async () => {
@@ -68,14 +52,7 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('user')).toHaveTextContent('none');
   });
 
-  it('login sets user and authenticated flag', async () => {
-    postMock.mockResolvedValueOnce({
-      data: { data: { accessToken: 'acc', refreshToken: 'ref', userId: 'u1' } },
-    });
-    getMock.mockResolvedValueOnce({
-      data: { data: { id: 'u1', username: 'admin', role: 'admin', isActive: true } },
-    });
-
+  it('login with valid credentials sets user and authenticated flag', async () => {
     renderWithProvider();
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'));
 
@@ -83,42 +60,34 @@ describe('AuthContext', () => {
       screen.getByText('do-login').click();
     });
 
-    await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('yes'));
+    await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('yes'), { timeout: 5000 });
     expect(screen.getByTestId('user')).toHaveTextContent('admin');
-    expect(headers.Authorization).toBe('Bearer acc');
+    expect(screen.getByTestId('role')).toHaveTextContent('admin');
+    expect(apiClient.defaults.headers.common['Authorization']).toMatch(/^Bearer /);
   });
 
-  it('login failure leaves state unauthenticated', async () => {
-    postMock.mockRejectedValueOnce(new Error('bad creds'));
-
+  it('login with bad credentials leaves state unauthenticated', async () => {
     renderWithProvider();
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'));
 
     await act(async () => {
-      screen.getByText('do-login').click();
+      screen.getByText('do-bad-login').click();
     });
 
-    await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('no'));
+    // Small delay so a (non-)successful response would have propagated.
+    await new Promise((r) => setTimeout(r, 200));
+    expect(screen.getByTestId('auth')).toHaveTextContent('no');
     expect(screen.getByTestId('user')).toHaveTextContent('none');
   });
 
-  it('logout clears user state', async () => {
-    postMock.mockResolvedValueOnce({
-      data: { data: { accessToken: 'acc', refreshToken: 'ref', userId: 'u1' } },
-    });
-    getMock.mockResolvedValueOnce({
-      data: { data: { id: 'u1', username: 'admin', role: 'admin', isActive: true } },
-    });
-    // logout post
-    postMock.mockResolvedValueOnce({ data: { data: {} } });
-
+  it('logout clears user state after a successful login', async () => {
     renderWithProvider();
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'));
 
     await act(async () => {
       screen.getByText('do-login').click();
     });
-    await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('yes'));
+    await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('yes'), { timeout: 5000 });
 
     await act(async () => {
       screen.getByText('do-logout').click();
@@ -128,29 +97,32 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('user')).toHaveTextContent('none');
   });
 
-  it('auto-restores session from stored refresh token', async () => {
-    localStorage.setItem('mm_user_id', 'u1');
-    localStorage.setItem('mm_refresh_token', 'ref');
-    postMock.mockResolvedValueOnce({
-      data: { data: { accessToken: 'acc', refreshToken: 'ref2' } },
-    });
-    getMock.mockResolvedValueOnce({
-      data: { data: { id: 'u1', username: 'supervisor', role: 'supervisor', isActive: true } },
-    });
+  it('auto-restores session from a stored refresh token issued by the real backend', async () => {
+    // First login through a throw-away provider to obtain a real refresh token…
+    const loginRes = await apiClient.post('/auth/login', { username: 'supervisor', password: 'meridian2024' });
+    const { userId, refreshToken } = loginRes.data.data;
+    clearAuth();
+    tokenStorage.saveRefresh(userId, refreshToken);
 
+    // …then mount a fresh provider and confirm it restores the session.
     renderWithProvider();
-    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'));
-    expect(screen.getByTestId('auth')).toHaveTextContent('yes');
-    expect(screen.getByTestId('user')).toHaveTextContent('supervisor');
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'), { timeout: 5000 });
+    await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('yes'), { timeout: 5000 });
+    expect(screen.getByTestId('role')).toHaveTextContent('supervisor');
   });
 
-  it('gracefully fails when stored refresh token is rejected', async () => {
-    localStorage.setItem('mm_user_id', 'u1');
-    localStorage.setItem('mm_refresh_token', 'ref');
-    postMock.mockRejectedValueOnce(new Error('expired'));
+  it('isLoading flips from yes to no on mount', async () => {
+    renderWithProvider();
+    // Either it was never "yes" because there's no stored token, or it
+    // flips quickly. Either way, it settles to no.
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'));
+  });
+
+  it('gracefully fails when stored refresh token is invalid', async () => {
+    tokenStorage.saveRefresh('00000000-0000-0000-0000-000000000000', 'not-a-real-refresh-token');
 
     renderWithProvider();
-    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'));
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'), { timeout: 5000 });
     expect(screen.getByTestId('auth')).toHaveTextContent('no');
   });
 });

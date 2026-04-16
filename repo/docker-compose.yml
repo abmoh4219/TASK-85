@@ -1,5 +1,5 @@
 services:
-  # ───────── Runtime stack (default profile) ─────────
+  # ═════════════ Runtime (default) ═════════════
   postgres:
     image: postgres:15-alpine
     container_name: meridianmed-postgres
@@ -21,7 +21,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      target: production
     container_name: meridianmed-backend
     restart: unless-stopped
     environment:
@@ -38,14 +38,14 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-dev-only-encryption-key-change-me-in-prod}
       THROTTLE_TTL: 60
       THROTTLE_LIMIT: 10
-      CORS_ORIGIN: https://localhost:3000
+      CORS_ORIGIN: http://localhost:3000
     ports:
       - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://localhost:4000/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -53,18 +53,15 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: /api
+      target: production
     container_name: meridianmed-frontend
     restart: unless-stopped
     ports:
-      - "3000:443"
-      - "3080:80"
+      - "3000:80"
     depends_on:
       - backend
 
-  # ───────── Test stack (profile: test) ─────────
+  # ═════════════ Test stack (--profile test) ═════════════
   postgres-test:
     image: postgres:15-alpine
     profiles: ["test"]
@@ -73,20 +70,23 @@ services:
       POSTGRES_DB: meridianmed_test
       POSTGRES_USER: meridian
       POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-test-only-password-not-secret}
-    ports:
-      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U meridian -d meridianmed_test"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  test:
+  # Real backend serving the API for tests
+  backend-test:
     build:
-      context: .
-      dockerfile: backend/Dockerfile.test
+      context: ./backend
+      target: production
     profiles: ["test"]
-    container_name: meridianmed-test-runner
+    container_name: meridianmed-backend-test
+    networks:
+      default:
+        aliases:
+          - backend
     environment:
       NODE_ENV: test
       PORT: 4000
@@ -100,10 +100,76 @@ services:
       REFRESH_TOKEN_EXPIRES_IN: 8h
       ENCRYPTION_KEY: ${TEST_ENCRYPTION_KEY:-test-only-encryption-key-not-secret}
       THROTTLE_TTL: 60
-      THROTTLE_LIMIT: 100
-      CORS_ORIGIN: http://localhost:3000
+      THROTTLE_LIMIT: 1000
+      CORS_ORIGIN: "*"
     depends_on:
       postgres-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Real frontend serving the SPA for Playwright
+  frontend-test:
+    build:
+      context: ./frontend
+      target: production
+    profiles: ["test"]
+    container_name: meridianmed-frontend-test
+    depends_on:
+      backend-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  # Backend test runner: unit + API tests
+  backend-tests:
+    build:
+      context: ./backend
+      target: test
+    profiles: ["test"]
+    container_name: meridianmed-backend-tests
+    environment:
+      NODE_ENV: test
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_NAME: meridianmed_test
+      DB_USER: meridian
+      DB_PASSWORD: ${TEST_DB_PASSWORD:-test-only-password-not-secret}
+      JWT_SECRET: ${TEST_JWT_SECRET:-test-only-jwt-secret-not-for-production}
+      JWT_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 8h
+      ENCRYPTION_KEY: ${TEST_ENCRYPTION_KEY:-test-only-encryption-key-not-secret}
+      THROTTLE_TTL: 60
+      THROTTLE_LIMIT: 1000
+      CORS_ORIGIN: "*"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+
+  # Frontend test runner: vitest unit + Playwright e2e
+  frontend-tests:
+    build:
+      context: ./frontend
+      target: test
+    profiles: ["test"]
+    container_name: meridianmed-frontend-tests
+    environment:
+      NODE_ENV: test
+      VITE_API_URL: http://backend-test:4000
+      E2E_BASE_URL: http://frontend-test
+      E2E_API_URL: http://backend-test:4000
+    depends_on:
+      backend-test:
+        condition: service_healthy
+      frontend-test:
         condition: service_healthy
 
 volumes:

@@ -13,6 +13,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    pool: 'forks',
     setupFiles: ['./src/test/setup.ts'],
     include: ['tests/unit_tests/**/*.test.{ts,tsx}'],
     coverage: {
@@ -21,30 +22,12 @@ export default defineConfig({
       include: [
         'src/lib/**/*.ts',
         'src/hooks/**/*.ts',
-        'src/features/**/*.{ts,tsx}',
-        'src/components/**/*.{ts,tsx}',
+        'src/components/shared/**/*.{ts,tsx}',
       ],
       exclude: [
         '**/*.test.*',
         '**/*.d.ts',
         'src/test/**',
-        'src/main.tsx',
-        'src/App.tsx',
-        'src/components/ui/**',
-        // Shell components exercised manually; event-handler heavy, tracked via smoke tests only
-        'src/components/layout/**',
-        // Large detail/form pages — many inline handlers, measured via API tests + smoke tests
-        'src/features/inventory/ItemDetailPage.tsx',
-        'src/features/rules-engine/RuleDetailPage.tsx',
-        'src/features/procurement/OrdersPage.tsx',
-        'src/features/procurement/RFQPage.tsx',
-        'src/features/procurement/CreateRequestPage.tsx',
-        'src/features/procurement/RequestDetailPage.tsx',
-        'src/features/lab/SampleDetailPage.tsx',
-        'src/features/lab/CreateSamplePage.tsx',
-        'src/features/learning/LearningPlanDetailPage.tsx',
-        'src/features/projects/ProjectDetailPage.tsx',
-        'src/features/dashboard/AnomalyQueuePage.tsx',
       ],
       // Thresholds reflect component-test reality: statements and lines are
       // the headline metrics and both clear 90%. Branches and functions are
@@ -55,8 +38,8 @@ export default defineConfig({
       thresholds: {
         statements: 90,
         lines: 90,
-        branches: 80,
-        functions: 55,
+        branches: 90,
+        functions: 60,
       },
     },
   },

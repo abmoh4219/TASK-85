@@ -1,34 +1,38 @@
-# Stage 1: build — use Debian-based node to avoid Alpine/musl npm crash
+# ── Stage 1: builder ────────────────────────────────────────
 FROM node:20 AS builder
-
 WORKDIR /app
 
-# API calls go through nginx proxy at /api
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 COPY package*.json ./
 RUN npm install
 
-COPY . .
+# Copy only source files — NOT nginx.conf, so config changes don't bust this cache
+COPY src ./src
+COPY index.html ./
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY postcss.config.js ./
+COPY tailwind.config.ts ./
+COPY components.json ./
+
 RUN npm run build
 
-# Stage 2: serve with nginx + TLS
+# ── Stage 2: production (nginx) ─────────────────────────────
 FROM nginx:alpine AS production
-
-# Generate self-signed TLS certificate for LAN/dev use
-RUN apk add --no-cache openssl && \
-    mkdir -p /etc/nginx/certs && \
-    openssl req -x509 -nodes -days 365 \
-      -newkey rsa:2048 \
-      -keyout /etc/nginx/certs/selfsigned.key \
-      -out /etc/nginx/certs/selfsigned.crt \
-      -subj "/C=US/ST=Local/L=Local/O=MeridianMed/CN=localhost" && \
-    apk del openssl
-
+RUN apk add --no-cache wget
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 443 80
-
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
+
+# ── Stage 3: test (vitest unit + Playwright e2e) ────────────
+FROM builder AS test
+RUN apt-get update && apt-get install -y --no-install-recommends chromium && rm -rf /var/lib/apt/lists/*
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+RUN npm install --no-save @vitest/coverage-v8@^1.4.0 @playwright/test@^1.44.0
+COPY tests ./tests
+COPY playwright.config.ts ./
+CMD ["sh", "-c", "npx vitest run --coverage && npx playwright test --reporter=list"]

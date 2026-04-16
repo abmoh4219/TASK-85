@@ -1,3 +1,4 @@
+# fullstack
 # MeridianMed Supply & Lab Operations Platform
 
 On-premise platform for hospitals and outpatient clinics that manages medical

@@ -1,84 +1,57 @@
 #!/bin/sh
-# MeridianMed test runner.
-#
-# Same script serves two modes:
-#   • HOST mode (outside Docker): requires only Docker. Spins up the test
-#     profile from docker-compose.yml and re-invokes itself inside the
-#     test-runner container.
-#   • CONTAINER mode (inside Docker): runs jest (backend unit + API) and
-#     vitest (frontend unit) directly against the live test database.
-#
-# Exit code: 0 = all suites passed; non-zero = at least one suite failed.
+# MeridianMed Test Suite — Docker only.
+# Runs all four categories: backend unit, backend API, frontend unit, frontend e2e.
+# Exit 0 = all pass; non-zero = at least one failed.
 set -e
 
-# ─────────────────────────────────────────────────────────────
-# Detect mode: inside Docker if /.dockerenv exists OR $IN_CONTAINER=1.
-# ─────────────────────────────────────────────────────────────
-if [ -f /.dockerenv ] || [ "$IN_CONTAINER" = "1" ]; then
-  MODE="container"
-else
-  MODE="host"
+if ! command -v docker >/dev/null 2>&1; then
+  echo "ERROR: Docker is required. Install: https://docs.docker.com/get-docker/" >&2
+  exit 1
+fi
+if ! docker info >/dev/null 2>&1; then
+  echo "ERROR: Docker daemon not running." >&2
+  exit 1
 fi
 
-# ═════════════════════════ HOST MODE ═════════════════════════
-if [ "$MODE" = "host" ]; then
-  if ! command -v docker >/dev/null 2>&1; then
-    echo "ERROR: Docker is required but not installed." >&2
-    echo "Install Docker: https://docs.docker.com/get-docker/" >&2
-    exit 1
-  fi
-  if ! docker info >/dev/null 2>&1; then
-    echo "ERROR: Docker daemon is not running or not accessible." >&2
-    echo "Start Docker and try again. See https://docs.docker.com/get-docker/" >&2
-    exit 1
-  fi
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  cd "$SCRIPT_DIR"
+DC="docker compose"
+$DC version >/dev/null 2>&1 || DC="docker-compose"
 
-  echo "========================================"
-  echo "  MeridianMed Test Suite (Docker)"
-  echo "========================================"
-
-  if docker compose version >/dev/null 2>&1; then
-    DC="docker compose"
-  else
-    DC="docker-compose"
-  fi
-
-  $DC --profile test run --build --rm test
-  EXIT=$?
-
-  $DC --profile test down -v >/dev/null 2>&1 || true
-  exit $EXIT
-fi
-
-# ═══════════════════════ CONTAINER MODE ══════════════════════
 echo "========================================"
 echo "  MeridianMed Test Suite"
 echo "========================================"
 
+# Clean up any stale containers from previous runs
+$DC --profile test down -v >/dev/null 2>&1 || true
+
+# Build all test-profile images
+echo ""
+echo "--- Building images ---"
+$DC --profile test build
+
+# Start supporting services (postgres-test, backend-test, frontend-test)
+echo ""
+echo "--- Starting test services ---"
+$DC --profile test up -d postgres-test backend-test frontend-test
+
 FAILED=0
 
+# 1+2) Backend tests (unit + API) — runs inside backend test target
 echo ""
-echo "--- Backend Unit Tests (with coverage) ---"
-cd /app/backend
-./node_modules/.bin/jest \
-  --testPathPattern="tests/unit_tests/.*\.spec\.ts$" \
-  --coverage \
-  --forceExit --ci 2>&1 || FAILED=1
+echo "=== [1-2/4] Backend Unit + API Tests ==="
+$DC --profile test run --rm backend-tests || FAILED=1
 
+# 3+4) Frontend tests (vitest unit + Playwright e2e) — runs inside frontend test target
 echo ""
-echo "--- Backend API/E2E Tests against real PostgreSQL (with coverage) ---"
-./node_modules/.bin/jest \
-  --config ./tests/api_tests/jest-e2e.json \
-  --coverage \
-  --runInBand --forceExit --ci 2>&1 || FAILED=1
+echo "=== [3-4/4] Frontend Unit + E2E Tests ==="
+$DC --profile test run --rm frontend-tests || FAILED=1
 
+# Cleanup
 echo ""
-echo "--- Frontend Unit Tests (with coverage) ---"
-cd /app/frontend
-./node_modules/.bin/vitest run --coverage 2>&1 || FAILED=1
+echo "--- Stopping test services ---"
+$DC --profile test down -v >/dev/null 2>&1 || true
 
 echo ""
 echo "========================================"
