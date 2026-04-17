@@ -21,10 +21,12 @@ RUN npm run build
 
 # ── Stage 2: production (nginx) ─────────────────────────────
 FROM nginx:alpine AS production
-RUN apk add --no-cache wget
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
+# Healthcheck: nginx writes its master pid file when running — no extra tools required
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
+    CMD test -f /var/run/nginx.pid || exit 1
 CMD ["nginx", "-g", "daemon off;"]
 
 # ── Stage 3: test (vitest unit + Playwright e2e) ────────────

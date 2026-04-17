@@ -25,8 +25,9 @@ RUN npm prune --omit=dev
 # ── Stage 4: production ────────────────────────────────────
 FROM node:20-alpine AS production
 WORKDIR /app
-RUN apk add --no-cache wget
 COPY --from=pruned /app/node_modules ./node_modules
 COPY --from=pruned /app/dist ./dist
 EXPOSE 4000
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=30s \
+    CMD node -e "require('http').get('http://localhost:4000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 CMD ["node", "dist/main.js"]
